@@ -335,14 +335,8 @@ export default function HomeScreen() {
             {themeMode === 'dark' ? <SunIcon color={theme.accent} /> : <MoonIcon color={theme.accent} />}
           </Pressable>
         </View>
-        <View style={styles.marca}>
-          <Image source={require('@/assets/images/cubo-fablab.png')} style={styles.marcaCubo} contentFit="contain" accessibilityLabel="FabLab UFPS" />
-          <ThemedText type="title" style={[styles.title, styles.marcaTitulo]}>FabLab UFPS</ThemedText>
-        </View>
-        <View style={styles.institucion}>
-          <Image source={require('@/assets/images/ufps-logo.png')} style={styles.marcaUfps} contentFit="contain" accessibilityLabel="Universidad Francisco de Paula Santander" />
-          <ThemedText themeColor="textSecondary" style={[styles.subtitle, styles.institucionTexto]}>Universidad Francisco de Paula Santander</ThemedText>
-        </View>
+        <Image source={themeMode === 'dark' ? require('@/assets/images/logo-oficial-oscuro.png') : require('@/assets/images/logo-oficial.png')}
+          style={styles.logoOficial} contentFit="contain" accessibilityLabel="Universidad Francisco de Paula Santander, Laboratorio de Fabricación Digital FABLAB" />
         <View style={styles.actionList}>
           {salas.length > 0 && (
             <View style={styles.resumen}>
@@ -770,6 +764,7 @@ const styles = StyleSheet.create({
   subtitle: { alignSelf: 'flex-start', marginTop: Spacing.one },
   // Marca en el encabezado: el cubo (la parte del logo que sí se lee a tamaño
   // chico) junto al nombre, y el mosaico UFPS junto a la universidad.
+  logoOficial: { width: '100%', maxWidth: 420, height: 100, marginTop: Spacing.two },
   marca: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.two, width: '100%' },
   marcaCubo: { width: 40, height: 46 },
   marcaTitulo: { marginTop: 0, alignSelf: 'center' },

@@ -276,14 +276,9 @@ export function PantallaEntrada() {
               completo, a 150 px, quedaba embutido e ilegible) con el nombre, y el
               mosaico UFPS junto a la universidad. */}
           {!escritorio && (
-            <View style={styles.marcaMovil}>
-              <Image accessibilityLabel="FabLab UFPS" source={require('@/assets/images/cubo-fablab.png')} style={styles.marcaCubo} resizeMode="contain" />
-              <ThemedText style={[styles.marcaNombre, { color: theme.accent }]}>FabLab UFPS</ThemedText>
-              <View style={styles.marcaInstitucion}>
-                <Image accessibilityLabel="Universidad Francisco de Paula Santander" source={require('@/assets/images/ufps-logo.png')} style={styles.marcaUfps} resizeMode="contain" />
-                <ThemedText themeColor="textSecondary" type="small">Universidad Francisco de Paula Santander</ThemedText>
-              </View>
-            </View>
+            <Image accessibilityLabel="Universidad Francisco de Paula Santander, Laboratorio de Fabricación Digital FABLAB"
+              source={modo === 'dark' ? require('@/assets/images/logo-oficial-oscuro.png') : require('@/assets/images/logo-oficial.png')}
+              style={styles.logoOficial} resizeMode="contain" />
           )}
 
           <ThemedText type="subtitle" style={styles.encabezado}>Iniciar sesión</ThemedText>
@@ -414,6 +409,7 @@ const styles = StyleSheet.create({
 
   // El PNG va con fondo transparente, así que se apoya directo en el fondo de la
   // pantalla (claro u oscuro) sin recuadro blanco alrededor.
+  logoOficial: { width: '100%', maxWidth: 360, height: 88, alignSelf: 'center', marginBottom: Spacing.four },
   marcaMovil: { alignSelf: 'center', alignItems: 'center', gap: Spacing.one, marginBottom: Spacing.four },
   marcaCubo: { width: 64, height: 73 },
   marcaNombre: { fontSize: 22, lineHeight: 28, fontWeight: '800', letterSpacing: -0.4 },
