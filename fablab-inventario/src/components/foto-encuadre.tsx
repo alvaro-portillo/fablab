@@ -3,7 +3,7 @@
 // guarda en el server, así que el recorte sale de la foto de 1200 px.
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { RojoTexto, Spacing } from '@/constants/theme';
@@ -54,19 +54,9 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
     setPos(acotar({ x: c.x - ventana.w / 2, y: c.y - ventana.h / 2 }));
   }, [dims, marcoW, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const vivo = useRef({ pos, escala, acotar });
-  useEffect(() => { vivo.current = { pos, escala, acotar }; });
-  const inicio = useRef(pos);
-  // eslint-disable-next-line react-hooks/refs -- los refs se leen en los gestos, no al renderizar
-  const [pan] = useState(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => { inicio.current = vivo.current.pos; },
-    onPanResponderMove: (_, g) => {
-      const { escala: s, acotar: a } = vivo.current;
-      setPos(a({ x: inicio.current.x - g.dx / s, y: inicio.current.y - g.dy / s }));
-    },
-  }));
+  // Punteros (mouse, dedo, lápiz) en vez de PanResponder: en web el arrastre con mouse no llegaba.
+  const [arrastre, setArrastre] = useState<{ px: number; py: number; x: number; y: number } | null>(null);
+  const puedeMoverse = !!dims && (ventana.w < dims.w - 1 || ventana.h < dims.h - 1);
 
   function cambiarZoom(z: number) {
     centro.current = { x: pos.x + ventana.w / 2, y: pos.y + ventana.h / 2 };
@@ -94,7 +84,20 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
       <View
         style={styles.marco}
         onLayout={(e) => setMarcoW(e.nativeEvent.layout.width)}
-        {...pan.panHandlers}>
+        onPointerDown={(e) => {
+          const t = e.currentTarget as unknown as { setPointerCapture?: (id: number) => void };
+          t.setPointerCapture?.(e.nativeEvent.pointerId);
+          setArrastre({ px: e.nativeEvent.pageX, py: e.nativeEvent.pageY, x: pos.x, y: pos.y });
+        }}
+        onPointerMove={(e) => {
+          if (!arrastre) return;
+          setPos(acotar({
+            x: arrastre.x - (e.nativeEvent.pageX - arrastre.px) / escala,
+            y: arrastre.y - (e.nativeEvent.pageY - arrastre.py) / escala,
+          }));
+        }}
+        onPointerUp={() => setArrastre(null)}
+        onPointerCancel={() => setArrastre(null)}>
         {src && dims ? (
           <Image
             source={{ uri: src }}
@@ -102,7 +105,9 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
           />
         ) : !error && <ActivityIndicator style={styles.cargando} />}
       </View>
-      <ThemedText themeColor="textSecondary" type="small">Arrastra la foto para centrarla. Acercar:</ThemedText>
+      <ThemedText themeColor="textSecondary" type="small">
+        {puedeMoverse ? 'Arrastra la foto para centrarla. Acercar:' : 'La foto ya llena el marco: acércala para poder moverla.'}
+      </ThemedText>
       <View style={styles.fila}>
         {ZOOMS.map((z) => (
           <Pressable key={z} accessibilityRole="button" onPress={() => cambiarZoom(z)}
@@ -127,7 +132,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
 
 const styles = StyleSheet.create({
   caja: { gap: Spacing.one },
-  marco: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0002', cursor: 'grab' as never, touchAction: 'none' as never },
+  marco: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0002', cursor: 'grab' as never, touchAction: 'none' as never, userSelect: 'none' as never },
   cargando: { flex: 1 },
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   boton: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
