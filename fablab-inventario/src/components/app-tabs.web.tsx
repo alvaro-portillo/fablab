@@ -84,7 +84,9 @@ export function CustomTabList(props: TabListProps) {
 const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
-    width: '100%',
+    // left/right (no width) para que la barra quede centrada igual que el contenido.
+    left: 0,
+    right: 0,
     padding: Spacing.three,
     zIndex: 10,
     justifyContent: 'center',
