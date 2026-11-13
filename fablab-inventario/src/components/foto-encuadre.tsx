@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { RojoTexto, Spacing } from '@/constants/theme';
 
 const ZOOM_MAX = 4;
-const PASO = 1.1; // cada − / + o rueda: 10 %
+const PASO = 0.05; // cada − / + o rueda: 5 puntos
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 export type Recorte = { uri: string; ancho: number; alto: number };
@@ -42,8 +42,10 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
 
   const marcoH = (marcoW * 3) / 4;
   // zoom 1 = la foto llena el marco; por debajo (solo web) se ve entera con relleno blanco.
-  const zoomMin = Platform.OS === 'web' && dims && marcoW
-    ? Math.min(marcoW / dims.w, marcoH / dims.h) / Math.max(marcoW / dims.w, marcoH / dims.h) : 1;
+  // Hasta 50 % (o menos si hace falta para ver entera una foto de otra proporción).
+  const zoomMin = Platform.OS !== 'web' ? 1 : dims && marcoW
+    ? Math.min(0.5, Math.min(marcoW / dims.w, marcoH / dims.h) / Math.max(marcoW / dims.w, marcoH / dims.h)) : 0.5;
+  const entera = dims && marcoW ? Math.min(marcoW / dims.w, marcoH / dims.h) / Math.max(marcoW / dims.w, marcoH / dims.h) : 1;
   const escala = dims && marcoW ? Math.max(marcoW / dims.w, marcoH / dims.h) * zoom : 1;
   const ventana = dims ? { w: marcoW / escala, h: marcoH / escala } : { w: 0, h: 0 };
   const acotar = (p: { x: number; y: number }) => dims
@@ -64,7 +66,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   const puedeMoverse = !!dims && (Math.abs(ventana.w - dims.w) > 1 || Math.abs(ventana.h - dims.h) > 1);
 
   function cambiarZoom(z: number) {
-    z = clamp(z, zoomMin, ZOOM_MAX);
+    z = clamp(Math.round(z * 100) / 100, zoomMin, ZOOM_MAX);
     centro.current = { x: pos.x + ventana.w / 2, y: pos.y + ventana.h / 2 };
     setZoom(z);
   }
@@ -73,7 +75,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   const marcoRef = useRef<View>(null);
   const rueda = useRef((_: WheelEvent) => {});
   useEffect(() => {
-    rueda.current = (e) => { e.preventDefault(); cambiarZoom(zoom * (e.deltaY < 0 ? PASO : 1 / PASO)); };
+    rueda.current = (e) => { e.preventDefault(); cambiarZoom(zoom + (e.deltaY < 0 ? PASO : -PASO)); };
   });
   useEffect(() => {
     const el = marcoRef.current as unknown as HTMLElement | null;
@@ -146,19 +148,19 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
       </ThemedText>
       <View style={styles.fila}>
         <Pressable accessibilityRole="button" accessibilityLabel="Alejar" disabled={zoom <= zoomMin + 1e-3}
-          onPress={() => cambiarZoom(zoom / PASO)} style={[styles.boton, zoom <= zoomMin + 1e-3 && { opacity: 0.4 }]}>
+          onPress={() => cambiarZoom(zoom - PASO)} style={[styles.boton, zoom <= zoomMin + 1e-3 && { opacity: 0.4 }]}>
           <ThemedText style={styles.etiqueta}>  −  </ThemedText>
         </Pressable>
         <ThemedText style={[styles.etiqueta, styles.porcentaje]}>{Math.round(zoom * 100)} %</ThemedText>
         <Pressable accessibilityRole="button" accessibilityLabel="Acercar" disabled={zoom >= ZOOM_MAX - 1e-3}
-          onPress={() => cambiarZoom(zoom * PASO)} style={[styles.boton, zoom >= ZOOM_MAX - 1e-3 && { opacity: 0.4 }]}>
+          onPress={() => cambiarZoom(zoom + PASO)} style={[styles.boton, zoom >= ZOOM_MAX - 1e-3 && { opacity: 0.4 }]}>
           <ThemedText style={styles.etiqueta}>  +  </ThemedText>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => cambiarZoom(1)} style={styles.boton}>
           <ThemedText style={styles.etiqueta}>Llenar</ThemedText>
         </Pressable>
-        {zoomMin < 1 && (
-          <Pressable accessibilityRole="button" onPress={() => cambiarZoom(zoomMin)} style={styles.boton}>
+        {entera < 0.99 && (
+          <Pressable accessibilityRole="button" onPress={() => cambiarZoom(entera)} style={styles.boton}>
             <ThemedText style={styles.etiqueta}>Entera</ThemedText>
           </Pressable>
         )}
