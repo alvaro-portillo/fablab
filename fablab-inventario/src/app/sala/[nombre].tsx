@@ -370,9 +370,13 @@ export default function SalaScreen() {
           {items.length > 0 && (
             <View style={styles.sheetAction}>
               <DataMatrixSheetButton
-                codigos={items.map((item) => item.codigo)}
-                omitidos={items.filter((item) => !item.codigo).length}
-                label={`Imprimir etiquetas de la sala (${items.length - sinCodigo})`}
+                codigos={visibles.map((item) => item.codigo)}
+                omitidos={visibles.filter((item) => !item.codigo).length}
+                label={
+                  visibles.length === items.length
+                    ? `Imprimir etiquetas de la sala (${items.length - sinCodigo})`
+                    : `Imprimir etiquetas filtradas (${visibles.filter((item) => item.codigo).length})`
+                }
                 archivo={`sala-${salaNombre || nombre}`}
                 ayuda="Abre una hoja paginada con todas las etiquetas de esta sala (elige el papel en la barra de la hoja y luego Imprimir / Guardar PDF)."
               />

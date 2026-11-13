@@ -105,7 +105,8 @@ export async function descargarDataMatrix(codigo: string, opciones?: OpcionesSvg
 
 // Una hoja más grande que esto deja de ser útil (y de a 300 etiquetas el SVG
 // ya pesa cientos de KB): mejor imprimir por sala o por búsqueda.
-const MAXIMO_ETIQUETAS_POR_HOJA = 300;
+// ponytail: 1000 cubre la sala más grande (Almacen, 577); subirlo si alguna la pasa.
+const MAXIMO_ETIQUETAS_POR_HOJA = 1000;
 
 /** Etiquetas de una lista de códigos, ya codificadas y con el tope validado. */
 export function etiquetasDeCodigos(codigos: readonly string[]): EtiquetaDataMatrix[] {
