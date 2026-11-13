@@ -513,6 +513,7 @@ export const DDL_FOTOS = `CREATE TABLE IF NOT EXISTS \`elemento_fotos\` (
   \`foto\` MEDIUMBLOB NOT NULL,
   \`miniatura\` MEDIUMBLOB NOT NULL,
   \`original\` MEDIUMBLOB NULL,
+  \`encuadre\` VARCHAR(100) NULL,
   \`actualizado\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (\`elemento_id\`) REFERENCES \`elementos\`(\`id\`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
@@ -524,6 +525,8 @@ export async function asegurarEsquemaFotos(cfg = conexionDesdeEnv()) {
     // Tablas creadas antes del encuadre: agregar la columna (MySQL no tiene ADD COLUMN IF NOT EXISTS).
     try { await conn.query('ALTER TABLE `elemento_fotos` ADD COLUMN `original` MEDIUMBLOB NULL AFTER `miniatura`'); }
     catch (e) { if (e?.errno !== 1060) throw e; } // 1060 = la columna ya existe
+    try { await conn.query('ALTER TABLE `elemento_fotos` ADD COLUMN `encuadre` VARCHAR(100) NULL AFTER `original`'); }
+    catch (e) { if (e?.errno !== 1060) throw e; }
   });
 }
 
@@ -798,6 +801,10 @@ export async function guardarFoto(elementoId, datos, cfg = conexionDesdeEnv()) {
   const { mime, foto, miniatura, hash } = validarFoto(datos);
   const ancho = Number.isFinite(Number(datos.ancho)) ? Number(datos.ancho) : null;
   const alto = Number.isFinite(Number(datos.alto)) ? Number(datos.alto) : null;
+  // Rectángulo del encuadre en fracciones del original: [x, y, ancho, alto].
+  const e = datos.recorte && Array.isArray(datos.encuadre) ? datos.encuadre.map(Number) : null;
+  const encuadre = e?.length === 4 && e.every((n) => Number.isFinite(n) && Math.abs(n) <= 10)
+    ? JSON.stringify(e.map((n) => Math.round(n * 1e4) / 1e4)) : null;
   invalidarCache();
   cacheFotoLimpiarElemento(elementoId);
   return conectar(cfg, async (conn) => {
@@ -811,9 +818,9 @@ export async function guardarFoto(elementoId, datos, cfg = conexionDesdeEnv()) {
       // no había, la foto actual ES el original (MySQL asigna en orden: se copia antes de pisarla).
       // Una foto nueva lo borra (NULL = la foto misma es el original).
       await conn.query(
-        `UPDATE elemento_fotos SET ${datos.recorte ? 'original = COALESCE(original, foto)' : 'original = NULL'},
+        `UPDATE elemento_fotos SET ${datos.recorte ? 'original = COALESCE(original, foto)' : 'original = NULL'}, encuadre = ?,
           mime = ?, ancho = ?, alto = ?, bytes = ?, hash = ?, foto = ?, miniatura = ? WHERE elemento_id = ?`,
-        [mime, ancho, alto, foto.length, hash, foto, miniatura, elementoId],
+        [encuadre, mime, ancho, alto, foto.length, hash, foto, miniatura, elementoId],
       );
     } else {
       await conn.query(
@@ -917,12 +924,12 @@ export async function obtenerHashFoto(elementoId, cfg = conexionDesdeEnv()) {
 
 /** Devuelve los bytes de la foto (o de su miniatura) para servirla tal cual. */
 export async function obtenerFoto(elementoId, tam = 'foto', cfg = conexionDesdeEnv()) {
-  const columna = { miniatura: 'miniatura', original: 'COALESCE(original, foto)' }[tam] ?? 'foto';
+  const columna = { miniatura: 'miniatura', original: 'COALESCE(original, foto) AS datos, encuadre' }[tam] ?? 'foto';
   const enCache = cacheFotoGet(elementoId, tam);
   if (enCache) return enCache;
   const fila = await conectar(cfg, async (conn) => {
     const [[fila]] = await conn.query(
-      `SELECT mime, hash, ${columna} AS datos FROM elemento_fotos WHERE elemento_id = ?`,
+      `SELECT mime, hash, ${columna.includes(' AS ') ? columna : `${columna} AS datos`} FROM elemento_fotos WHERE elemento_id = ?`,
       [elementoId],
     );
     return fila ?? null;

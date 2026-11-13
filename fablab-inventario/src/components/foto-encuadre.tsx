@@ -12,7 +12,8 @@ const ZOOM_MAX = 4;
 const PASO = 0.05; // cada − / + o rueda: 5 puntos
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-export type Recorte = { uri: string; ancho: number; alto: number };
+// encuadre: rectángulo recortado en fracciones del original [x, y, ancho, alto].
+export type Recorte = { uri: string; ancho: number; alto: number; encuadre: number[] };
 
 export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   uri: string;
@@ -20,6 +21,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   onGuardar: (r: Recorte) => void;
 }) {
   // En web la foto viene de otro dominio: como blob local el canvas del recorte no queda "tainted".
+  const pendiente = useRef<number[] | null>(null); // encuadre guardado: el editor abre ahí
   const [src, setSrc] = useState<string | null>(Platform.OS === 'web' ? null : uri);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
   const [marcoW, setMarcoW] = useState(0);
@@ -31,7 +33,11 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     let url: string | null = null;
-    fetch(uri).then((r) => r.blob()).then((b) => { url = URL.createObjectURL(b); setSrc(url); })
+    fetch(uri).then((r) => {
+      const h = r.headers.get('X-Encuadre');
+      try { if (h) pendiente.current = JSON.parse(h); } catch { /* sin encuadre previo */ }
+      return r.blob();
+    }).then((b) => { url = URL.createObjectURL(b); setSrc(url); })
       .catch(() => setError('No se pudo cargar la foto.'));
     return () => { if (url) URL.revokeObjectURL(url); };
   }, [uri]);
@@ -55,6 +61,13 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   const centro = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     if (!dims || !marcoW) return;
+    const e = pendiente.current;
+    if (e) {
+      pendiente.current = null;
+      centro.current = { x: (e[0] + e[2] / 2) * dims.w, y: (e[1] + e[3] / 2) * dims.h };
+      const z = clamp(marcoW / (e[2] * dims.w) / Math.max(marcoW / dims.w, marcoH / dims.h), zoomMin, ZOOM_MAX);
+      if (Math.abs(z - zoom) > 1e-3) { setZoom(z); return; } // el efecto vuelve a correr con el zoom nuevo
+    }
     const c = centro.current ?? { x: dims.w / 2, y: dims.h / 2 };
     setPos(acotar({ x: c.x - ventana.w / 2, y: c.y - ventana.h / 2 }));
   }, [dims, marcoW, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -83,6 +96,9 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
     return () => el.removeEventListener('wheel', f);
   }, []);
 
+  const fracciones = () => dims
+    ? [pos.x / dims.w, pos.y / dims.h, ventana.w / dims.w, ventana.h / dims.h] : [0, 0, 1, 1];
+
   async function guardar() {
     if (!src || !dims) return;
     setRecortando(true);
@@ -99,7 +115,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
         ctx.drawImage(img, -pos.x, -pos.y);
         const blob = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', 0.92));
         if (!blob) throw new Error('toBlob');
-        onGuardar({ uri: URL.createObjectURL(blob), ancho: c.width, alto: c.height });
+        onGuardar({ uri: URL.createObjectURL(blob), ancho: c.width, alto: c.height, encuadre: fracciones() });
         return;
       }
       const ref = await ImageManipulator.manipulate(src).crop({
@@ -107,7 +123,7 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
         width: Math.round(ventana.w), height: Math.round(ventana.h),
       }).renderAsync();
       const res = await ref.saveAsync({ compress: 1 });
-      onGuardar({ uri: res.uri, ancho: res.width, alto: res.height });
+      onGuardar({ uri: res.uri, ancho: res.width, alto: res.height, encuadre: fracciones() });
     } catch {
       setError('No se pudo recortar la foto.');
       setRecortando(false);

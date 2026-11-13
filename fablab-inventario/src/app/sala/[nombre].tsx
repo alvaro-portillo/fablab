@@ -211,7 +211,7 @@ export default function SalaScreen() {
     return () => window.removeEventListener('keydown', alTeclear);
   }, [selected, saving, closeModal]);
 
-  async function handleFoto(asset: Pick<ImagePicker.ImagePickerAsset, 'uri' | 'width' | 'height' | 'fileSize'>, recorte = false) {
+  async function handleFoto(asset: Pick<ImagePicker.ImagePickerAsset, 'uri' | 'width' | 'height' | 'fileSize'>, encuadre?: number[]) {
     if (!selected?.id || saving) return;
     setSaving(true);
     setSaveError(null);
@@ -225,7 +225,7 @@ export default function SalaScreen() {
         pesoOriginalBytes: asset.fileSize,
       });
       setFotoEstado('Subiendo foto…');
-      const hash = await subirFoto(selected.id, { ...optimizada, recorte }); // recorte: el server conserva el original
+      const hash = await subirFoto(selected.id, { ...optimizada, recorte: !!encuadre, encuadre }); // recorte: el server conserva el original
       // El hash nuevo cambia la URL: expo-image pide la imagen nueva sola.
       setSelected((prev) => (prev ? { ...prev, foto_hash: hash } : prev));
       setFotoResumen(`Foto guardada: ${optimizada.resumen}`);
@@ -571,7 +571,7 @@ export default function SalaScreen() {
                   <FotoEncuadre
                     uri={urlFoto(selected, 'original') ?? fotoGrande}
                     onCancelar={() => setEncuadrando(false)}
-                    onGuardar={(r) => handleFoto({ uri: r.uri, width: r.ancho, height: r.alto }, true)}
+                    onGuardar={(r) => handleFoto({ uri: r.uri, width: r.ancho, height: r.alto }, r.encuadre)}
                   />
                 ) : fotoGrande ? (
                   <Image

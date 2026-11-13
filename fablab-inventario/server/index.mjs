@@ -136,7 +136,7 @@ function csv(res, filename, filas) {
 // Binario (foto/miniatura). No pasa por json(): nada de gzip (WebP/JPEG ya
 // están comprimidos) y `immutable`, porque la URL lleva el hash de la imagen:
 // si la foto cambia, cambia la URL y el teléfono no revalida la vieja.
-function binario(res, datos, mime, hash, req) {
+function binario(res, datos, mime, hash, req, extra = {}) {
   const etag = `"${hash}"`;
   const headers = {
     'Content-Type': mime,
@@ -144,7 +144,8 @@ function binario(res, datos, mime, hash, req) {
     ETag: etag,
     'Cache-Control': 'private, max-age=31536000, immutable',
     ...ORIGEN,
-    'Access-Control-Expose-Headers': 'ETag',
+    'Access-Control-Expose-Headers': 'ETag, X-Encuadre',
+    ...extra,
   };
   if (String(req?.headers['if-none-match'] || '').includes(etag)) {
     res.writeHead(304, headers);
@@ -462,7 +463,8 @@ async function handleReq(req, res) {
       }
       const foto = await obtenerFoto(elementoId, ['miniatura', 'original'].includes(query.tam) ? query.tam : 'foto', conexionDesdeEnv());
       if (!foto) return notFound(res);
-      return binario(res, foto.datos, foto.mime, foto.hash, req);
+      // X-Encuadre: dónde está la foto actual dentro del original (para abrir el editor ahí).
+      return binario(res, foto.datos, foto.mime, foto.hash, req, foto.encuadre ? { 'X-Encuadre': foto.encuadre } : {});
     }
 
     // POST /api/elementos/:id/foto  →  subir/reemplazar la foto (ya reducida en

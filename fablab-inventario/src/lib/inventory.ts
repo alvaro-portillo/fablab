@@ -322,7 +322,7 @@ export function urlFoto(
  * dispositivo (base64). El mensaje del server se propaga porque un 413 explica
  * exactamente cuánto pesa y cuál es el límite.
  */
-export async function subirFoto(id: number, datos: DatosFoto & { recorte?: boolean }): Promise<string> {
+export async function subirFoto(id: number, datos: DatosFoto & { recorte?: boolean; encuadre?: number[] }): Promise<string> {
   const res = await fetch(`${API_BASE}/elementos/${id}/foto`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
