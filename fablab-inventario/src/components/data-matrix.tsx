@@ -88,7 +88,9 @@ export async function descargarDataMatrix(codigo: string, opciones?: OpcionesSvg
   const nombre = `${nombreArchivoDataMatrix(codigo)}.svg`;
 
   if (Platform.OS === 'web') {
-    descargarEnNavegador(svg, nombre);
+    // La hoja de una etiqueta: papel elegible, tamaño real y guía de corte. Un
+    // SVG suelto se imprime estirado a toda la página en casi cualquier visor.
+    await descargarHojaEtiquetas([codigo], { nombre: nombreArchivoDataMatrix(codigo) });
     return;
   }
   await compartirArchivoNativo(svg, nombre, `Data Matrix ${codigo}`);
@@ -243,7 +245,7 @@ export function DataMatrixSheetButton({
       await descargarHojaEtiquetas(codigos, { nombre: archivo });
       setAviso(
         Platform.OS === 'web'
-          ? `Abriendo la hoja con ${cantidad} etiqueta${cantidad === 1 ? '' : 's'} (elige A4 o Carta al imprimir)…`
+          ? `Abriendo la hoja con ${cantidad} etiqueta${cantidad === 1 ? '' : 's'} (elige el papel arriba en la hoja y luego Imprimir)…`
           : `Compartiendo ${cantidad} etiqueta${cantidad === 1 ? '' : 's'}…`,
       );
     } catch (e) {

@@ -129,8 +129,8 @@ function pintarPapel(papel) {
     hoja.paginas + (hoja.paginas === 1 ? ' página' : ' páginas') + ' en ' + hoja.nombre;
 }
 window.addEventListener('load', function () {
+  // ponytail: sin imprimir solo — primero se elige el papel en la barra.
   pintarPapel(document.getElementById('select-papel').value);
-  setTimeout(function () { window.print(); }, 400);
 });
 </script>
 </body>

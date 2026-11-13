@@ -374,7 +374,7 @@ export default function SalaScreen() {
                 omitidos={items.filter((item) => !item.codigo).length}
                 label={`Imprimir etiquetas de la sala (${items.length - sinCodigo})`}
                 archivo={`sala-${salaNombre || nombre}`}
-                ayuda="Abre una hoja paginada con todas las etiquetas de esta sala (elige A4 o Carta al imprimir, o guarda el PDF desde el diálogo)."
+                ayuda="Abre una hoja paginada con todas las etiquetas de esta sala (elige el papel en la barra de la hoja y luego Imprimir / Guardar PDF)."
               />
             </View>
           )}

@@ -157,15 +157,6 @@ function conPapelInicial(html, papel) {
     .replace(new RegExp(`<option value="${papel}">`), `<option value="${papel}" selected>`);
 }
 
-// La propia hoja abre el diálogo al cargar. En headless no aporta nada y puede
-// interferir con --print-to-pdf, así que se quita de la copia de prueba; si el
-// texto cambia, esto avisa en vez de probar otra cosa sin enterarse.
-function sinAutoImpresion(html) {
-  const quitado = html.replace(/setTimeout\(function \(\) \{ window\.print\(\); \}, \d+\);/, '');
-  if (quitado === html) throw new Error('la hoja ya no imprime sola: revisá sinAutoImpresion()');
-  return quitado;
-}
-
 // Las hojas se imprimen **en serie**: con `--user-data-dir` propio (que es lo que
 // haría falta para paralelizar) un perfil nuevo deja a Brave colgado esperando su
 // flujo de primera ejecución, y sin él las instancias se pelean por el perfil del
@@ -239,9 +230,7 @@ for (const pedido of PEDIDOS) {
     );
     const hoja = variantes.find((h) => h.papel === pedido.papel);
     const html = conPapelInicial(
-      sinAutoImpresion(
-        htmlHojaImprimible(variantes, etiquetas.length, `etiquetas-${pedido.papel}.svg`, '#'),
-      ),
+      htmlHojaImprimible(variantes, etiquetas.length, `etiquetas-${pedido.papel}.svg`, '#'),
       pedido.papel,
     );
     const rutaHtml = join(carpeta, `hoja-${pedido.papel}.html`);
