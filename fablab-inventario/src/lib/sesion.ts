@@ -9,7 +9,17 @@ import { leerCuerpoJson, mensajeDeEstado } from './mensajes';
 
 const CLAVE = 'fablab.sesion.v1';
 
-type Sesion = { token: string; expira: number; usuario: string };
+// `permisos` falta en sesiones guardadas antes de los roles: esas eran de la cuenta
+// principal (la única que existía), así que se tratan como administradora.
+type Sesion = { token: string; expira: number; usuario: string; permisos?: string[] };
+
+export type Permiso = 'editar' | 'editar_cantidad' | 'agregar' | 'eliminar' | 'trasladar' | 'fotos' | 'importar' | 'administrar';
+
+/** ¿La sesión vigente puede hacer esto? Solo oculta botones: el server decide de verdad. */
+export function puede(p: Permiso): boolean {
+  if (!vigente(actual)) return false;
+  return !actual.permisos || actual.permisos.includes(p);
+}
 
 let actual: Sesion | null = null;
 let listo = false; // ya se empezó a cargar
@@ -26,7 +36,7 @@ export function suscribirSesion(f: () => void): () => void {
 }
 /** Valor estable (cadena) que cambia cuando cambia la sesión: para useSyncExternalStore. */
 export function estadoSesion(): string {
-  return `${cargada ? 1 : 0}:${usuarioDeSesion() ?? ''}`;
+  return `${cargada ? 1 : 0}:${vigente(actual) ? (actual.permisos ?? ['*']).join(',') : ''}:${usuarioDeSesion() ?? ''}`;
 }
 
 function vigente(s: Sesion | null): s is Sesion {
@@ -79,7 +89,7 @@ export async function iniciarSesion(base: string, usuario: string, clave: string
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(turnstileToken ? { usuario, clave, turnstileToken } : { usuario, clave }),
   });
-  const cuerpo = (await leerCuerpoJson<{ token?: string; usuario?: string; error?: string; expira_horas?: number }>(res)) ?? {};
+  const cuerpo = (await leerCuerpoJson<{ token?: string; usuario?: string; permisos?: string[]; error?: string; expira_horas?: number }>(res)) ?? {};
   if (!res.ok || !cuerpo.token) {
     // El server explica en español por qué (clave mala, captcha, límite). Si no manda
     // texto, se traduce el estado: "(502)" no le dice nada a quien está entrando.
@@ -88,6 +98,7 @@ export async function iniciarSesion(base: string, usuario: string, clave: string
   const sesion: Sesion = {
     token: cuerpo.token,
     usuario: cuerpo.usuario ?? usuario,
+    permisos: cuerpo.permisos ?? [],
     expira: Date.now() + Number(cuerpo.expira_horas ?? 12) * 3_600_000,
   };
   actual = sesion;

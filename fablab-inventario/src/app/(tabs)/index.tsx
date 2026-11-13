@@ -3,7 +3,7 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
@@ -63,7 +63,7 @@ export default function HomeScreen() {
   const theme = useTheme();
   const themeMode = useThemeMode();
   const toggleTheme = useToggleTheme();
-  const { usuario } = useSesion();
+  const { usuario, puede } = useSesion();
   // En pantallas angostas (celular) las fichas van en filas; en anchas, en tres columnas.
   const { escritorio } = useDisposicion();
   const [openAction, setOpenAction] = useState<'scan' | 'add' | 'search' | 'export' | null>(null);
@@ -312,7 +312,16 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, escritorio && styles.scrollContentEscritorio]} keyboardShouldPersistTaps="handled">
+        {/* Cuenta a la derecha, junto al tema (pedido de Ricardo). */}
         <View style={styles.header}>
+          {puede('administrar') && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/admin' as Href)}
+              style={({ pressed }) => [styles.cuentaPildora, { borderColor: theme.textSecondary }, pressed && styles.pressed]}>
+              <ThemedText type="smallBold" style={styles.cuentaSalir}>Usuarios</ThemedText>
+            </Pressable>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Cerrar la sesión de ${usuario ?? 'la cuenta'}`}
@@ -404,7 +413,7 @@ export default function HomeScreen() {
 
           <View style={[styles.fichas, !escritorio && styles.fichasColumna]}>
             <ActionTile icon="qrcode.viewfinder" label="Escanear" hint="Lee la etiqueta" isOpen={openAction === 'scan'} onPress={() => openPanel('scan')} />
-            <ActionTile icon="plus" label="Agregar" hint="Nuevo elemento" isOpen={openAction === 'add'} onPress={() => openPanel('add')} />
+            {puede('agregar') && <ActionTile icon="plus" label="Agregar" hint="Nuevo elemento" isOpen={openAction === 'add'} onPress={() => openPanel('add')} />}
             <ActionTile icon="export" label="Exportar" hint="CSV, JSON o Excel" isOpen={openAction === 'export'} onPress={() => openPanel('export')} />
           </View>
 
@@ -541,7 +550,7 @@ export default function HomeScreen() {
             </View>
             {exportEstado && <ThemedText themeColor="textSecondary" type="small" style={styles.exportEstado}>{exportEstado}</ThemedText>}
             {exportError && <ThemedText style={styles.errorText}>{exportError}</ThemedText>}
-            {Platform.OS === 'web' && <>
+            {Platform.OS === 'web' && puede('importar') && <>
               <ThemedText themeColor="textSecondary" style={styles.description}>
                 Importar: sube el inventario en CSV o Excel (xlsx, xls, ods). En un libro, cada hoja es una sala y su nombre debe coincidir con el de la sala. Solo agrega códigos nuevos; lo demás se reporta abajo.
               </ThemedText>
@@ -755,7 +764,7 @@ const styles = StyleSheet.create({
   // desplazamiento no se dibuja encima del contenido (en PC se solapaba).
   scrollContent: { flexGrow: 1, width: '100%', alignSelf: 'center', maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.four },
   scrollContentEscritorio: { maxWidth: MaxContentWidthEscritorio },
-  header: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.six },
+  header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.six },
   themeButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#C8102E', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
   title: { marginTop: Spacing.two, color: '#C8102E', alignSelf: 'flex-start' },
   subtitle: { alignSelf: 'flex-start', marginTop: Spacing.one },

@@ -15,6 +15,8 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing } from '@/constants/theme';
 import { estiloRejilla, useDisposicion } from '@/hooks/use-disposicion';
 import { useTheme, useThemeMode } from '@/hooks/use-theme';
+import { useSesion } from '@/hooks/use-sesion';
+import { BarraPestanas } from '@/components/app-tabs';
 import {
   asignarCodigo,
   eliminarFoto,
@@ -35,11 +37,11 @@ import {
 } from '@/lib/inventory';
 import { mensajeDeError } from '@/lib/mensajes';
 
-// Los mismos campos que el server acepta por PUT (CAMPOS_EDITABLES). El codigo
-// no se edita (es lo impreso en el Data Matrix); mover de sala es un traslado.
-type CampoTexto = 'detalle' | 'serial' | 'estado' | 'observaciones' | 'cantidad';
-const CAMPOS_TEXTO: CampoTexto[] = ['detalle', 'serial', 'estado', 'observaciones', 'cantidad'];
-const LABELS: Record<CampoTexto | 'inventario', string> = {
+// Los mismos campos que el server acepta por PUT (CAMPOS_EDITABLES). El código va
+// aparte (POST /codigo con reemplazar: es lo impreso); mover de sala es un traslado.
+type CampoTexto = 'inventario' | 'detalle' | 'serial' | 'estado' | 'observaciones' | 'cantidad';
+const CAMPOS_TEXTO: CampoTexto[] = ['inventario', 'detalle', 'serial', 'estado', 'observaciones', 'cantidad'];
+const LABELS: Record<CampoTexto, string> = {
   detalle: 'Detalle',
   serial: 'Serial',
   estado: 'Estado',
@@ -53,6 +55,9 @@ export default function SalaScreen() {
   const salaId = Number(nombre);
   const { height: screenH } = useWindowDimensions();
   const { escritorio, columnas } = useDisposicion();
+  const { puede } = useSesion();
+  const puedeCampo = (f: CampoTexto) => puede('editar') || (f === 'cantidad' && puede('editar_cantidad'));
+  const [codigoEdit, setCodigoEdit] = useState<string | null>(null); // null = sin tocar
   const theme = useTheme();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [selected, setSelected] = useState<InventoryItem | null>(null);
@@ -159,6 +164,7 @@ export default function SalaScreen() {
     setSelected(null);
     setConfirmCodigo(null);
     setEdit({});
+    setCodigoEdit(null);
     setSaveError(null);
     setFotoEstado(null);
     setFotoResumen(null);
@@ -232,7 +238,9 @@ export default function SalaScreen() {
     const campos = Object.fromEntries(
       Object.entries(edit).filter(([k, v]) => v !== (selected as Record<string, unknown>)[k]),
     ) as CamposEditables;
-    if (!Object.keys(campos).length) {
+    const codigoNuevo = codigoEdit?.trim().toUpperCase();
+    const cambiaCodigo = !!codigoNuevo && codigoNuevo !== selected.codigo;
+    if (!Object.keys(campos).length && !cambiaCodigo) {
       closeModal();
       return;
     }
@@ -243,7 +251,12 @@ export default function SalaScreen() {
     setSaving(true);
     setSaveError(null);
     try {
-      await updateItem(selected.id, campos);
+      if (cambiaCodigo) {
+        await asignarCodigo(selected.id, codigoNuevo, true);
+        setCodigoEdit(null);
+        setSelected((prev) => (prev ? { ...prev, codigo: codigoNuevo } : prev));
+      }
+      if (Object.keys(campos).length) await updateItem(selected.id, campos);
       setEdit({});
       setSelected((prev) => (prev ? { ...prev, ...campos } : prev));
       load();
@@ -485,7 +498,7 @@ export default function SalaScreen() {
 
                 {/* La foto se toma aquí y se sube ya reducida (1200 px + miniatura),
                     para que el inventario completo quepa en el servidor. */}
-                <View style={styles.photoActions}>
+                {puede('fotos') && <View style={styles.photoActions}>
                   <Pressable
                     accessibilityRole="button"
                     disabled={saving || selected.id == null}
@@ -509,7 +522,7 @@ export default function SalaScreen() {
                       <ThemedText style={[styles.photoButtonLabel, { color: theme.textSecondary }]}>Quitar foto</ThemedText>
                     </Pressable>
                   )}
-                </View>
+                </View>}
                 {fotoEstado && <ThemedText themeColor="textSecondary" type="small">{fotoEstado}</ThemedText>}
                 {fotoResumen && <ThemedText themeColor="textSecondary" type="small">{fotoResumen}</ThemedText>}
 
@@ -531,7 +544,7 @@ export default function SalaScreen() {
                     <ThemedText themeColor="textSecondary" type="small" style={styles.etiquetaHint}>
                       Este elemento no tiene código, así que todavía no hay Data Matrix que imprimir.
                     </ThemedText>
-                    <Pressable
+                    {puede('editar') && <Pressable
                       accessibilityRole="button"
                       disabled={saving || selected.id == null}
                       onPress={handleAsignarCodigo}
@@ -539,7 +552,7 @@ export default function SalaScreen() {
                       {saving
                         ? <ActivityIndicator size="small" color="#FFFFFF" />
                         : <ThemedText style={styles.saveButtonLabel}>Asignar código</ThemedText>}
-                    </Pressable>
+                    </Pressable>}
                     <ThemedText themeColor="textSecondary" type="small" style={styles.etiquetaHint}>
                       Se le asigna un código nuevo; después ya se puede descargar su etiqueta.
                     </ThemedText>
@@ -555,19 +568,23 @@ export default function SalaScreen() {
                       key={field}
                       label={LABELS[field]}
                       value={String(edit[field] ?? selected[field] ?? '')}
-                      editable={!saving}
+                      editable={!saving && puedeCampo(field)}
                       multiline={field === 'observaciones'}
                       onChangeText={(value) => setEdit((prev) => ({ ...prev, [field]: value }))}
                     />
                   ))}
 
-                <View style={styles.inputGroup}>
-                  <ThemedText themeColor="textSecondary" type="small" style={styles.detailLabel}>{LABELS.inventario}</ThemedText>
-                  <ThemedText type="smallBold">{selected.inventario || '-'}</ThemedText>
-                </View>
+                  {selected.codigo && puede('editar') ? (
+                    <CampoModal
+                      label="Código (etiqueta)"
+                      value={codigoEdit ?? selected.codigo}
+                      editable={!saving}
+                      onChangeText={setCodigoEdit}
+                    />
+                  ) : null}
                 </View>
 
-                {salas.length > 1 && (
+                {salas.length > 1 && puede('trasladar') && (
                   <View style={styles.inputGroup}>
                     <ThemedText themeColor="textSecondary" type="small" style={styles.detailLabel}>Mover a sala</ThemedText>
                     <View style={styles.roomChips}>
@@ -608,7 +625,7 @@ export default function SalaScreen() {
 
               {/* Pie fijo: con la ficha larga, Guardar quedaba al final del scroll. */}
               <View style={[styles.modalPie, { borderTopColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }]}>
-                <Pressable
+                {(puede('editar') || puede('editar_cantidad')) && <Pressable
                   accessibilityRole="button"
                   disabled={saving}
                   onPress={handleSave}
@@ -616,11 +633,11 @@ export default function SalaScreen() {
                   {saving
                     ? <ActivityIndicator size="small" color="#FFFFFF" />
                     : <ThemedText style={styles.saveButtonLabel}>Guardar cambios</ThemedText>}
-                </Pressable>
+                </Pressable>}
 
                 {/* Sin código no hay DELETE posible (la API borra por código), así
                     que el botón no se ofrece: para esos está "Asignar código". */}
-                {selected.codigo ? (
+                {selected.codigo && puede('eliminar') ? (
                 <Pressable
                   accessibilityRole="button"
                   disabled={saving}
@@ -641,13 +658,14 @@ export default function SalaScreen() {
           </Pressable>
         </Pressable>
       )}
+      <BarraPestanas activa="explore" />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, alignItems: 'center' },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingBottom: BottomTabInset + Spacing.four },
   content: { width: '100%', maxWidth: MaxContentWidth, paddingHorizontal: Spacing.four, paddingBottom: BottomTabInset + Spacing.four },
   contentEscritorio: { maxWidth: MaxContentWidthEscritorio },
   backButton: { marginTop: Spacing.six, alignSelf: 'flex-start' },

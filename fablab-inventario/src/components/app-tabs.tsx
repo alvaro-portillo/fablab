@@ -27,3 +27,8 @@ export default function AppTabs() {
     </NativeTabs>
   );
 }
+
+// En nativo las pestañas ya quedan a la vista bajo las pantallas apiladas.
+export function BarraPestanas(_: { activa?: 'home' | 'explore' }) {
+  return null;
+}

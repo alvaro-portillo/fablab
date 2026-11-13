@@ -3,10 +3,11 @@
 
 import { useSyncExternalStore } from 'react';
 
-import { estadoSesion, suscribirSesion } from '@/lib/sesion';
+import { estadoSesion, puede, suscribirSesion } from '@/lib/sesion';
 
-export function useSesion(): { cargada: boolean; usuario: string | null } {
+// `puede` lee la sesión al vuelo; el hook re-renderiza cuando cambian usuario o permisos.
+export function useSesion(): { cargada: boolean; usuario: string | null; puede: typeof puede } {
   const estado = useSyncExternalStore(suscribirSesion, estadoSesion, estadoSesion);
-  const [cargada, ...resto] = estado.split(':');
-  return { cargada: cargada === '1', usuario: resto.join(':') || null };
+  const [cargada, , ...resto] = estado.split(':');
+  return { cargada: cargada === '1', usuario: resto.join(':') || null, puede };
 }

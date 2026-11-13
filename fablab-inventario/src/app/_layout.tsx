@@ -61,6 +61,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="sala/[nombre]" />
+              <Stack.Screen name="admin" />
             </Stack>
           ) : (
             <PantallaEntrada />

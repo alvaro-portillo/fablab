@@ -33,10 +33,20 @@ import {
   cerrarPools,
   ErrorApi,
   idEntero,
+  PERMISOS,
+  permisoRequerido,
+  asegurarCuentas,
+  listarRoles,
+  guardarRol,
+  borrarRol,
+  listarUsuarios,
+  buscarUsuario,
+  guardarUsuario,
+  borrarUsuario,
 } from '../importer/api.mjs';
 import { conexionDesdeEnv } from '../importer/importar.mjs';
 import { contextoPeticion } from '../importer/api.mjs';
-import { leerSesion, firmarSesion, verificarClave } from './sesion.mjs';
+import { leerSesion, firmarSesion, verificarClave, crearHashClave } from './sesion.mjs';
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -286,6 +296,17 @@ function quienEs(req, query, permiteQuery = false) {
   return null;
 }
 
+// Permisos por cuenta. 'script' y la cuenta del env (llave de arranque) lo pueden
+// todo; las de la base, lo que diga su rol. Cache en RAM, se vacía en cada cambio
+// de usuarios/roles. null = la cuenta ya no existe (sesión huérfana → 401).
+// ponytail: cache por proceso; con varias réplicas un cambio tarda en verse en las otras.
+const cachePermisos = new Map();
+async function permisosDe(quien) {
+  if (quien === 'script' || quien === CUENTA_USUARIO) return PERMISOS;
+  if (!cachePermisos.has(quien)) cachePermisos.set(quien, (await buscarUsuario(quien, conexionDesdeEnv()))?.permisos ?? null);
+  return cachePermisos.get(quien);
+}
+
 function noAutorizado(res) {
   res.writeHead(401, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -311,6 +332,7 @@ async function handleReq(req, res) {
 
   const { pathname, query } = parseUrl(req.url, true);
   const parts = pathname.split('/').filter(Boolean);
+  let soloCantidad = false;
 
   try {
     // POST/PUT/DELETE requieren token o sesión. HEAD es lectura. El login va
@@ -328,10 +350,19 @@ async function handleReq(req, res) {
       const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
       const captchaOk = await verificarTurnstile(body.turnstileToken, ip);
       if (!captchaOk) return json(res, 403, { error: 'Verificación de seguridad fallida: intenta de nuevo' });
-      const ok = String(body.usuario ?? '') === CUENTA_USUARIO && verificarClave(body.clave ?? '', CUENTA_CLAVE_HASH);
-      if (!ok) return json(res, 401, { error: 'Usuario o contraseña incorrectos' });
+      const usuario = String(body.usuario ?? '');
+      const clave = String(body.clave ?? '');
+      let permisos = null;
+      if (usuario === CUENTA_USUARIO) {
+        if (verificarClave(clave, CUENTA_CLAVE_HASH)) permisos = PERMISOS;
+      } else if (usuario) {
+        const u = await buscarUsuario(usuario, conexionDesdeEnv());
+        // Sin cuenta igual se paga un scrypt: que el tiempo no delate qué usuarios existen.
+        if (verificarClave(clave, u?.clave_hash ?? CUENTA_CLAVE_HASH) && u) permisos = u.permisos;
+      }
+      if (!permisos) return json(res, 401, { error: 'Usuario o contraseña incorrectos' });
       const horas = 12;
-      return json(res, 200, { token: firmarSesion(CUENTA_USUARIO, SESION_SECRETO, { horas }), expira_horas: horas, usuario: CUENTA_USUARIO });
+      return json(res, 200, { token: firmarSesion(usuario, SESION_SECRETO, { horas }), expira_horas: horas, usuario, permisos });
     }
     // Todo requiere credencial menos /health (healthchecks) y el login. Las fotos y las
     // exportaciones se abren con <img> o un enlace, que no pueden mandar header: ahí
@@ -344,6 +375,42 @@ async function handleReq(req, res) {
       // Lo usa auditar() para la columna actor: el nombre de la cuenta o 'script'
       const almacen = contextoPeticion.getStore();
       if (almacen) almacen.actor = quien;
+      const permisos = await permisosDe(quien);
+      if (!permisos) return noAutorizado(res);
+      const requerido = permisoRequerido(req.method, parts);
+      if (requerido && !permisos.includes(requerido)) {
+        // PUT sin `editar` pero con `editar_cantidad`: se decide con el cuerpo, en la ruta.
+        if (requerido === 'editar' && req.method === 'PUT' && permisos.includes('editar_cantidad')) soloCantidad = true;
+        else return json(res, 403, { error: 'Tu rol no tiene permiso para esto' });
+      }
+    }
+
+    // GET /api/yo  →  permisos de la sesión (la app los refresca al abrir)
+    if (req.method === 'GET' && parts.join('/') === 'api/yo') {
+      const almacen = contextoPeticion.getStore();
+      return json(res, 200, { usuario: almacen?.actor, permisos: await permisosDe(almacen?.actor) });
+    }
+
+    // --- Administración: roles y usuarios (permiso `administrar`) ---
+    if (parts[0] === 'api' && (parts[1] === 'roles' || parts[1] === 'usuarios') && parts.length <= 3) {
+      const roles = parts[1] === 'roles';
+      const id = parts[2] ? idEntero(parts[2]) : null;
+      if (parts[2] && id == null) return badRequest(res, 'ID inválido');
+      if (req.method === 'GET' && !id) {
+        return json(res, 200, roles ? { roles: await listarRoles(conexionDesdeEnv()), permisos: PERMISOS } : await listarUsuarios(conexionDesdeEnv()));
+      }
+      cachePermisos.clear();
+      if (req.method === 'DELETE' && id) return json(res, 200, await (roles ? borrarRol : borrarUsuario)(id, conexionDesdeEnv()));
+      if ((req.method === 'POST' && !id) || (req.method === 'PUT' && id)) {
+        const body = await readBody(req);
+        if (roles) return json(res, id ? 200 : 201, await guardarRol({ ...body, id }, conexionDesdeEnv()));
+        if (String(body.usuario ?? '').trim() === CUENTA_USUARIO) return json(res, 409, { error: 'Ese nombre es el de la cuenta principal' });
+        const clave = String(body.clave ?? '');
+        if (clave && clave.length < 8) return badRequest(res, 'La contraseña debe tener al menos 8 caracteres');
+        const datos = { usuario: body.usuario, rol_id: body.rol_id, clave_hash: clave ? crearHashClave(clave) : '', id };
+        return json(res, id ? 200 : 201, await guardarUsuario(datos, conexionDesdeEnv()));
+      }
+      return json(res, 405, { error: 'Método no permitido' });
     }
 
     // GET /health  →  healthcheck para deploys (Render, etc.)
@@ -458,6 +525,9 @@ async function handleReq(req, res) {
       const id = idEntero(parts[2]);
       if (id == null) return badRequest(res, 'ID de elemento inválido');
       const body = await readBody(req);
+      if (soloCantidad && permisoRequerido('PUT', parts, body) !== 'editar_cantidad') {
+        return json(res, 403, { error: 'Tu rol solo puede cambiar la cantidad' });
+      }
       const result = await actualizarElemento(id, body, conexionDesdeEnv());
       return json(res, 200, result);
     }
@@ -469,7 +539,7 @@ async function handleReq(req, res) {
       const elementoId = idEntero(parts[2]);
       if (elementoId == null) return badRequest(res, 'ID de elemento inválido');
       const body = await readBody(req);
-      const result = await asignarCodigo(elementoId, body.codigo, conexionDesdeEnv());
+      const result = await asignarCodigo(elementoId, body.codigo, conexionDesdeEnv(), { reemplazar: body.reemplazar === true });
       return json(res, 201, result);
     }
 
@@ -543,6 +613,8 @@ try {
   console.log('[esquema] elemento_fotos lista ✔');
   await asegurarAuditoria(conexionDesdeEnv());
   console.log('[esquema] auditoria lista ✔');
+  await asegurarCuentas(conexionDesdeEnv());
+  console.log('[esquema] roles y usuarios listos ✔');
   const salasCreadas = await asegurarSalas(conexionDesdeEnv());
   if (salasCreadas) console.log(`[esquema] salas nuevas creadas: ${salasCreadas} ✔`);
   // Duplicados de `codigo` (el Excel original repitió IOT-79): se reparan ANTES

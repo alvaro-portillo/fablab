@@ -438,9 +438,10 @@ export function normalizarCodigo(codigo) {
  * Decide si se puede asignar el código. Pura: sin base, así el self-check la
  * cubre sin MySQL. `idConEseCodigo` es el id que ya usa ese código, si hay uno.
  */
-export function validarAsignacion({ id, codigoActual, codigoNuevo, idConEseCodigo }) {
+export function validarAsignacion({ id, codigoActual, codigoNuevo, idConEseCodigo, reemplazar = false }) {
   const nuevo = normalizarCodigo(codigoNuevo);
-  if (codigoActual != null && String(codigoActual).trim() !== '') {
+  // `reemplazar`: corrección explícita desde la ficha (permiso editar), no el flujo de escaneo.
+  if (!reemplazar && codigoActual != null && String(codigoActual).trim() !== '') {
     throw new ErrorApi(
       `El elemento ${id} ya tiene código (${codigoActual}); no se sobrescribe el identificador impreso`,
       409,
@@ -452,7 +453,7 @@ export function validarAsignacion({ id, codigoActual, codigoNuevo, idConEseCodig
   return nuevo;
 }
 
-export async function asignarCodigo(id, codigo, cfg = conexionDesdeEnv()) {
+export async function asignarCodigo(id, codigo, cfg = conexionDesdeEnv(), { reemplazar = false } = {}) {
   if (idEntero(id) == null) throw new ErrorApi('ID de elemento inválido', 400);
   const nuevo = normalizarCodigo(codigo);
   invalidarCache();
@@ -465,7 +466,7 @@ export async function asignarCodigo(id, codigo, cfg = conexionDesdeEnv()) {
     // chequea a mano, que es la razón por la que `validarAsignacion` sigue
     // recibiendo `idConEseCodigo`.
     const dueno = codigoUnicoEnBase ? null : await idDuenoDelCodigo(conn, nuevo);
-    validarAsignacion({ id, codigoActual: actual.codigo, codigoNuevo: nuevo, idConEseCodigo: dueno });
+    validarAsignacion({ id, codigoActual: actual.codigo, codigoNuevo: nuevo, idConEseCodigo: dueno, reemplazar });
     await conn.beginTransaction();
     try {
       await conn.query('UPDATE elementos SET codigo = ? WHERE id = ?', [nuevo, id]);
@@ -1198,4 +1199,152 @@ export async function importarArchivo(bytes, cfg = conexionDesdeEnv()) {
     total.hojas.push({ hoja: nombreHoja, sala: conColumnas ? 'columna sala' : sala.nombre, importados: r.importados });
   }
   return total;
+}
+
+// --- Usuarios y roles ---
+// La cuenta de CUENTA_USUARIO (env) es siempre administradora: es la llave de
+// arranque y no se puede bloquear desde la app. Las demás cuentas viven en la
+// base, cada una con un rol; el administrador crea roles con los permisos que quiera.
+export const PERMISOS = ['editar', 'editar_cantidad', 'agregar', 'eliminar', 'trasladar', 'fotos', 'importar', 'administrar'];
+
+const DDL_ROLES = `CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(64) NOT NULL UNIQUE,
+  permisos JSON NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
+const DDL_USUARIOS = `CREATE TABLE IF NOT EXISTS usuarios (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario VARCHAR(64) NOT NULL UNIQUE,
+  clave_hash VARCHAR(255) NOT NULL,
+  rol_id INT NOT NULL,
+  FOREIGN KEY (rol_id) REFERENCES roles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
+const ROLES_BASE = [
+  ['Administrador', PERMISOS],
+  ['Practicante', ['editar_cantidad']],
+  ['Visitante', []],
+];
+
+export async function asegurarCuentas(cfg = conexionDesdeEnv()) {
+  await conectar(cfg, async (conn) => {
+    await conn.query(DDL_ROLES);
+    await conn.query(DDL_USUARIOS);
+    for (const [nombre, permisos] of ROLES_BASE) {
+      await conn.query('INSERT IGNORE INTO roles (nombre, permisos) VALUES (?, ?)', [nombre, JSON.stringify(permisos)]);
+    }
+  });
+}
+
+const leerPermisos = (p) => (typeof p === 'string' ? JSON.parse(p) : p) ?? [];
+function validarPermisos(permisos) {
+  if (!Array.isArray(permisos) || permisos.some((p) => !PERMISOS.includes(p))) {
+    throw new ErrorApi(`permisos debe ser una lista de: ${PERMISOS.join(', ')}`, 400);
+  }
+  return [...new Set(permisos)];
+}
+const nombreValido = (n, campo) => {
+  const v = String(n ?? '').trim();
+  if (!v || v.length > 64) throw new ErrorApi(`${campo} es obligatorio (máx. 64 caracteres)`, 400);
+  return v;
+};
+
+export async function listarRoles(cfg = conexionDesdeEnv()) {
+  return conectar(cfg, async (conn) => {
+    const [filas] = await conn.query('SELECT id, nombre, permisos FROM roles ORDER BY id');
+    return filas.map((r) => ({ ...r, permisos: leerPermisos(r.permisos) }));
+  });
+}
+export async function guardarRol({ id, nombre, permisos }, cfg = conexionDesdeEnv()) {
+  const n = nombreValido(nombre, 'nombre');
+  const p = JSON.stringify(validarPermisos(permisos));
+  return conectar(cfg, async (conn) => {
+    try {
+      if (id) {
+        const [r] = await conn.query('UPDATE roles SET nombre = ?, permisos = ? WHERE id = ?', [n, p, id]);
+        if (!r.affectedRows) throw new ErrorApi('El rol no existe', 404);
+        return { id };
+      }
+      const [r] = await conn.query('INSERT INTO roles (nombre, permisos) VALUES (?, ?)', [n, p]);
+      return { id: r.insertId };
+    } catch (e) {
+      if (e?.errno === 1062) throw new ErrorApi('Ya existe un rol con ese nombre', 409);
+      throw e;
+    }
+  });
+}
+export async function borrarRol(id, cfg = conexionDesdeEnv()) {
+  return conectar(cfg, async (conn) => {
+    const [[uso]] = await conn.query('SELECT COUNT(*) n FROM usuarios WHERE rol_id = ?', [id]);
+    if (uso.n) throw new ErrorApi('El rol tiene usuarios: cámbialos de rol primero', 409);
+    const [r] = await conn.query('DELETE FROM roles WHERE id = ?', [id]);
+    if (!r.affectedRows) throw new ErrorApi('El rol no existe', 404);
+    return { borrado: true };
+  });
+}
+
+export async function listarUsuarios(cfg = conexionDesdeEnv()) {
+  return conectar(cfg, async (conn) => {
+    const [filas] = await conn.query('SELECT id, usuario, rol_id FROM usuarios ORDER BY usuario');
+    return filas;
+  });
+}
+/** Cuenta de la base con su hash y permisos (para el login y cada petición), o null. */
+export async function buscarUsuario(usuario, cfg = conexionDesdeEnv()) {
+  return conectar(cfg, async (conn) => {
+    const [[u]] = await conn.query(
+      'SELECT u.usuario, u.clave_hash, r.nombre rol, r.permisos FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE u.usuario = ?',
+      [usuario],
+    );
+    return u ? { ...u, permisos: leerPermisos(u.permisos) } : null;
+  });
+}
+/** Alta (sin id) o cambio. `clave_hash` ya viene hasheada; vacía = no cambiar. */
+export async function guardarUsuario({ id, usuario, clave_hash, rol_id }, cfg = conexionDesdeEnv()) {
+  const u = nombreValido(usuario, 'usuario');
+  const rol = idEntero(rol_id);
+  if (rol == null) throw new ErrorApi('rol_id es obligatorio', 400);
+  if (!id && !clave_hash) throw new ErrorApi('clave es obligatoria', 400);
+  return conectar(cfg, async (conn) => {
+    try {
+      if (id) {
+        const [r] = await conn.query(
+          `UPDATE usuarios SET usuario = ?, rol_id = ?${clave_hash ? ', clave_hash = ?' : ''} WHERE id = ?`,
+          clave_hash ? [u, rol, clave_hash, id] : [u, rol, id],
+        );
+        if (!r.affectedRows) throw new ErrorApi('El usuario no existe', 404);
+        return { id };
+      }
+      const [r] = await conn.query('INSERT INTO usuarios (usuario, clave_hash, rol_id) VALUES (?, ?, ?)', [u, clave_hash, rol]);
+      return { id: r.insertId };
+    } catch (e) {
+      if (e?.errno === 1062) throw new ErrorApi('Ya existe un usuario con ese nombre', 409);
+      if (e?.errno === 1452) throw new ErrorApi('El rol no existe', 400);
+      throw e;
+    }
+  });
+}
+export async function borrarUsuario(id, cfg = conexionDesdeEnv()) {
+  return conectar(cfg, async (conn) => {
+    const [r] = await conn.query('DELETE FROM usuarios WHERE id = ?', [id]);
+    if (!r.affectedRows) throw new ErrorApi('El usuario no existe', 404);
+    return { borrado: true };
+  });
+}
+
+/** Permiso que exige una petición (null = solo sesión). Pura: la cubre el self-check. */
+export function permisoRequerido(metodo, parts, body = {}) {
+  const ruta = parts.join('/');
+  if (metodo === 'GET' || metodo === 'HEAD') return parts[1] === 'usuarios' || parts[1] === 'roles' ? 'administrar' : null;
+  if (parts[1] === 'usuarios' || parts[1] === 'roles') return 'administrar';
+  if (ruta === 'api/traslados') return 'trasladar';
+  if (ruta === 'api/elementos') return 'agregar';
+  if (ruta === 'api/import/elementos') return 'importar';
+  if (parts[1] === 'elementos' && parts[3] === 'foto') return 'fotos';
+  if (parts[1] === 'elementos' && parts[3] === 'codigo') return 'editar';
+  if (metodo === 'DELETE' && parts[1] === 'elementos') return 'eliminar';
+  if (metodo === 'PUT' && parts[1] === 'elementos') {
+    const campos = Object.keys(body).filter((k) => body[k] !== undefined);
+    return campos.length && campos.every((c) => c === 'cantidad') ? 'editar_cantidad' : 'editar';
+  }
+  return 'administrar'; // ruta de escritura desconocida: solo el admin
 }

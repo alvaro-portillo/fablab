@@ -7,6 +7,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
+import { Link } from 'expo-router';
 import { Pressable, View, StyleSheet } from 'react-native';
 
 import { ThemedText } from './themed-text';
@@ -33,6 +34,23 @@ export default function AppTabs() {
   );
 }
 
+/**
+ * La misma barra para las pantallas fuera de las pestañas (sala, administración):
+ * Ricardo pidió que nunca se pierda. En nativo no hace falta (app-tabs.tsx → null).
+ */
+export function BarraPestanas({ activa }: { activa?: 'home' | 'explore' }) {
+  return (
+    <CustomTabList style={styles.barraFija}>
+      <Link href="/" asChild>
+        <TabButton isFocused={activa === 'home'}>Inicio</TabButton>
+      </Link>
+      <Link href="/explore" asChild>
+        <TabButton isFocused={activa === 'explore'}>Inventario</TabButton>
+      </Link>
+    </CustomTabList>
+  );
+}
+
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
@@ -50,7 +68,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   const { escritorio } = useDisposicion();
   return (
-    <View {...props} style={styles.tabListContainer}>
+    <View {...props} style={[styles.tabListContainer, props.style]}>
       <ThemedView type="backgroundElement" style={[styles.innerContainer, escritorio && styles.innerContainerEscritorio]}>
         <ThemedText type="smallBold" style={styles.brandText}>
           FabLab UFPS
@@ -85,6 +103,7 @@ const styles = StyleSheet.create({
   brandText: {
     marginRight: 'auto',
   },
+  barraFija: { bottom: 0 },
   pressed: {
     opacity: 0.7,
   },

@@ -285,9 +285,11 @@ export async function findByCodigo(codigo: string): Promise<InventoryItem | unde
 // código: sin código no hay Data Matrix que imprimir ni forma de escanear el
 // elemento. El server solo rellena vacíos (responde 409 si ya tiene uno),
 // porque el código es el identificador impreso en la etiqueta.
-export async function asignarCodigo(id: number, codigo: string): Promise<InventoryItem> {
+export async function asignarCodigo(id: number, codigo: string, reemplazar = false): Promise<InventoryItem> {
+  // `reemplazar`: corregir un código existente desde la ficha (permiso editar).
   const res = await post<{ asignado: boolean; elemento: InventoryItem }>(`/elementos/${id}/codigo`, {
     codigo,
+    reemplazar,
   });
   const cached = memAll?.items ?? (await cacheAllFromStorage());
   writeAllCache(cached.map((it) => (it.id === id ? { ...it, ...res.elemento } : it)));
@@ -565,3 +567,20 @@ export async function importarInventario(archivo: ArrayBuffer): Promise<Resultad
 // --- Sin ubicación (fallback UI) ---
 export const SinUbicacion = 'Sin ubicación';
 
+
+// --- Administración: roles y usuarios (solo con permiso `administrar`) ---
+export type Rol = { id: number; nombre: string; permisos: string[] };
+export type Usuario = { id: number; usuario: string; rol_id: number };
+
+async function borrar(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers: authHeaders() });
+  if (!res.ok) throw await falla(res, `DELETE ${path}`);
+}
+export const listarRoles = () => get<{ roles: Rol[]; permisos: string[] }>('/roles');
+export const listarUsuarios = () => get<Usuario[]>('/usuarios');
+export const guardarRol = (r: Omit<Rol, 'id'> & { id?: number }) =>
+  r.id ? put(`/roles/${r.id}`, r) : post('/roles', r);
+export const guardarUsuario = (u: { id?: number; usuario: string; rol_id: number; clave?: string }) =>
+  u.id ? put(`/usuarios/${u.id}`, u) : post('/usuarios', u);
+export const borrarRol = (id: number) => borrar(`/roles/${id}`);
+export const borrarUsuario = (id: number) => borrar(`/usuarios/${id}`);

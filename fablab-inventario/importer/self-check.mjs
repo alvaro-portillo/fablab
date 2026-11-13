@@ -101,7 +101,30 @@ console.log('self-check OK');
   // Codigo ya usado por OTRO elemento: rechaza; por el mismo (reintento): pasa.
   rechaza(() => validarAsignacion({ id: 1, codigoActual: null, codigoNuevo: 'IOT-79', idConEseCodigo: 246 }), 409);
   assert.equal(validarAsignacion({ id: 1, codigoActual: null, codigoNuevo: 'CNC-137', idConEseCodigo: 1 }), 'CNC-137');
+  // Corrección explícita (reemplazar): sobrescribe, pero sigue sin robar el código de otro.
+  assert.equal(validarAsignacion({ id: 1, codigoActual: 'CNC-01', codigoNuevo: 'CNC-137', idConEseCodigo: null, reemplazar: true }), 'CNC-137');
+  rechaza(() => validarAsignacion({ id: 1, codigoActual: 'CNC-01', codigoNuevo: 'IOT-79', idConEseCodigo: 246, reemplazar: true }), 409);
   console.log('self-check codigos OK');
+}
+
+// Permiso que exige cada ruta (puro).
+{
+  const { permisoRequerido: p } = await import('./api.mjs');
+  const r = (ruta) => ruta.split('/').filter(Boolean);
+  assert.equal(p('GET', r('/api/elementos')), null);
+  assert.equal(p('GET', r('/api/usuarios')), 'administrar');
+  assert.equal(p('POST', r('/api/roles')), 'administrar');
+  assert.equal(p('PUT', r('/api/elementos/5'), { cantidad: 3 }), 'editar_cantidad');
+  assert.equal(p('PUT', r('/api/elementos/5'), { cantidad: 3, detalle: 'x' }), 'editar');
+  assert.equal(p('PUT', r('/api/elementos/5'), {}), 'editar');
+  assert.equal(p('DELETE', r('/api/elementos/CNC-1')), 'eliminar');
+  assert.equal(p('DELETE', r('/api/elementos/5/foto')), 'fotos');
+  assert.equal(p('POST', r('/api/elementos/5/codigo')), 'editar');
+  assert.equal(p('POST', r('/api/elementos')), 'agregar');
+  assert.equal(p('POST', r('/api/traslados')), 'trasladar');
+  assert.equal(p('POST', r('/api/import/elementos')), 'importar');
+  assert.equal(p('POST', r('/api/otra')), 'administrar');
+  console.log('self-check permisos OK');
 }
 
 // Ids de ruta y borrado por código ambiguo (puros: no tocan la base).
