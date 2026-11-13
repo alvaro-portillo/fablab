@@ -89,6 +89,7 @@ export default function SalaScreen() {
   const [filtroEnfocado, setFiltroEnfocado] = useState(false);
   // Filtro rápido por tipo: el nombre sin el número final ("Arduino uno 3" → "Arduino uno").
   const [tipoSel, setTipoSel] = useState('');
+  const [todosTipos, setTodosTipos] = useState(false);
   const tipoDe = (i: InventoryItem) => (i.detalle ?? '').trim().replace(/[\s\-#.]*\d+$/, '').trim();
   const tipos = useMemo(() => {
     const n = new Map<string, number>();
@@ -391,7 +392,7 @@ export default function SalaScreen() {
           )}
           {items.length > 8 && tipos.length > 1 && (
             <View style={styles.chips}>
-              {([['', items.length], ...tipos] as [string, number][]).map(([e, n]) => {
+              {([['', items.length], ...(todosTipos ? tipos : tipos.filter(([t, n], k) => (n > 1 && k < 10) || t === tipoSel))] as [string, number][]).map(([e, n]) => {
                 const activo = tipoSel === e;
                 return (
                   <Pressable
@@ -410,6 +411,12 @@ export default function SalaScreen() {
                   </Pressable>
                 );
               })}
+              {/* Solo los tipos más comunes: con todos (cientos de 1) era una pared de chips. */}
+              {tipos.some(([, n], k) => n === 1 || k >= 10) && (
+                <Pressable accessibilityRole="button" onPress={() => setTodosTipos((v) => !v)} style={styles.chip}>
+                  <ThemedText type="small" style={{ color: RojoTexto }}>{todosTipos ? 'Menos tipos' : `Más tipos (${tipos.length})`}</ThemedText>
+                </Pressable>
+              )}
             </View>
           )}
 
