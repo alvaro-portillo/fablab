@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   // desplazamiento no se dibuja encima del contenido (en PC se solapaba).
   scrollContent: { flexGrow: 1, width: '100%', alignSelf: 'center', maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.four },
   scrollContentEscritorio: { maxWidth: MaxContentWidthEscritorio },
-  header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.six },
+  header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.two, marginTop: Platform.OS === 'web' ? 96 : Spacing.six }, // web: libra la barra fija de arriba
   themeButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
   title: { marginTop: Spacing.two, color: RojoTexto, alignSelf: 'flex-start' },
   subtitle: { alignSelf: 'flex-start', marginTop: Spacing.one },
