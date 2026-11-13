@@ -313,7 +313,11 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, escritorio && styles.scrollContentEscritorio]} keyboardShouldPersistTaps="handled">
         {/* Cuenta a la derecha, junto al tema (pedido de Ricardo). */}
+        {/* Logo a la izquierda y cuenta a la derecha en la misma fila (en móvil se apilan). */}
         <View style={styles.header}>
+          <Image source={themeMode === 'dark' ? require('@/assets/images/logo-oficial-oscuro.png') : require('@/assets/images/logo-oficial.png')}
+            style={styles.logoOficial} contentFit="contain" accessibilityLabel="Universidad Francisco de Paula Santander, Laboratorio de Fabricación Digital FABLAB" />
+          <View style={styles.cuentaFila}>
           {puede('administrar') && (
             <Pressable
               accessibilityRole="button"
@@ -334,9 +338,8 @@ export default function HomeScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Cambiar modo claro u oscuro" onPress={toggleTheme} style={[styles.themeButton, { borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }]}>
             {themeMode === 'dark' ? <SunIcon color={theme.accent} /> : <MoonIcon color={theme.accent} />}
           </Pressable>
+          </View>
         </View>
-        <Image source={themeMode === 'dark' ? require('@/assets/images/logo-oficial-oscuro.png') : require('@/assets/images/logo-oficial.png')}
-          style={styles.logoOficial} contentFit="contain" accessibilityLabel="Universidad Francisco de Paula Santander, Laboratorio de Fabricación Digital FABLAB" />
         <View style={styles.actionList}>
           {salas.length > 0 && (
             <View style={styles.resumen}>
@@ -758,20 +761,21 @@ const styles = StyleSheet.create({
   // desplazamiento no se dibuja encima del contenido (en PC se solapaba).
   scrollContent: { flexGrow: 1, width: '100%', alignSelf: 'center', maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.four },
   scrollContentEscritorio: { maxWidth: MaxContentWidthEscritorio },
-  header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.two, marginTop: Platform.OS === 'web' ? 96 : Spacing.six }, // web: libra la barra fija de arriba
+  header: { width: '100%', flexDirection: 'row', flexWrap: 'wrap-reverse', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.three, marginTop: Platform.OS === 'web' ? 96 : Spacing.six }, // web: libra la barra fija de arriba
   themeButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
   title: { marginTop: Spacing.two, color: RojoTexto, alignSelf: 'flex-start' },
   subtitle: { alignSelf: 'flex-start', marginTop: Spacing.one },
   // Marca en el encabezado: el cubo (la parte del logo que sí se lee a tamaño
   // chico) junto al nombre, y el mosaico UFPS junto a la universidad.
-  logoOficial: { width: '100%', maxWidth: 420, height: 100, marginTop: Spacing.two },
+  logoOficial: { flexGrow: 1, flexShrink: 1, minWidth: 260, maxWidth: 380, height: 88 },
+  cuentaFila: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginLeft: 'auto' },
   marca: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.two, width: '100%' },
   marcaCubo: { width: 40, height: 46 },
   marcaTitulo: { marginTop: 0, alignSelf: 'center' },
   institucion: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, marginTop: Spacing.one, width: '100%' },
   marcaUfps: { width: 20, height: 20 },
   institucionTexto: { marginTop: 0, alignSelf: 'center' },
-  actionList: { width: '100%', gap: Spacing.three, marginTop: Spacing.six },
+  actionList: { width: '100%', gap: Spacing.three, marginTop: Spacing.four },
   resumen: { flexDirection: 'row', gap: Spacing.three },
   resumenTarjeta: { ...SombraTarjeta, flex: 1, borderRadius: 16, paddingVertical: Spacing.three, paddingHorizontal: Spacing.four },
   resumenNumero: { fontSize: 28, lineHeight: 34, fontWeight: '700', color: RojoTexto },
