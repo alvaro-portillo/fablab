@@ -68,7 +68,8 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   const { escritorio } = useDisposicion();
   return (
-    <ThemedView {...props} style={[styles.tabListContainer, props.style]}>
+    // Contenedor transparente y sin capturar clics: si fuera opaco tapaba la barra de scroll.
+    <View {...props} pointerEvents="box-none" style={[styles.tabListContainer, props.style]}>
       <ThemedView type="backgroundElement" style={[styles.innerContainer, escritorio && styles.innerContainerEscritorio]}>
         <ThemedText type="smallBold" style={styles.brandText}>
           FabLab UFPS
@@ -76,7 +77,7 @@ export function CustomTabList(props: TabListProps) {
 
         {props.children}
       </ThemedView>
-    </ThemedView>
+    </View>
   );
 }
 
