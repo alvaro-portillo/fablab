@@ -611,12 +611,16 @@ export default function SalaScreen() {
                 {/* La etiqueta original se pierde o se daña: desde la ficha de
                     cualquier elemento se vuelve a descargar el Data Matrix. */}
                 {selected.codigo ? (
-                  <View style={styles.etiquetaBox}>
-                    <DataMatrixCode value={selected.codigo} size={110} />
-                    <DataMatrixDownloadButton codigo={selected.codigo} label="Descargar para imprimir" />
-                    <ThemedText themeColor="textSecondary" type="small" style={styles.etiquetaHint}>
-                      Imprime esta etiqueta si el código del elemento se perdió o se dañó.
-                    </ThemedText>
+                  <View style={[styles.etiquetaFila, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+                    <View style={styles.etiquetaCodigo}>
+                      <DataMatrixCode value={selected.codigo} size={96} />
+                    </View>
+                    <View style={styles.etiquetaTexto}>
+                      <ThemedText themeColor="textSecondary" type="small">
+                        Imprime esta etiqueta si el código del elemento se perdió o se dañó.
+                      </ThemedText>
+                      <DataMatrixDownloadButton codigo={selected.codigo} label="Descargar" />
+                    </View>
                   </View>
                 ) : (
                   <View style={styles.etiquetaBox}>
@@ -809,6 +813,9 @@ const styles = StyleSheet.create({
   trasladoRow: { gap: 1, paddingVertical: 2 },
   etiquetaBox: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.three, borderRadius: 12 },
   etiquetaHint: { textAlign: 'center' },
+  etiquetaFila: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, padding: Spacing.three, borderRadius: 12, borderWidth: 1 },
+  etiquetaCodigo: { borderRadius: 8, overflow: 'hidden' },
+  etiquetaTexto: { flex: 1, gap: Spacing.two, alignItems: 'flex-start' },
   removeButtonConfirm: { backgroundColor: '#C8102E' },
   removeButtonLabelConfirm: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
   modalBackdrop: { position: Platform.OS === 'web' ? ('fixed' as 'absolute') : 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: Spacing.four, zIndex: 1000 },
