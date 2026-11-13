@@ -92,7 +92,8 @@ export default function SalaScreen() {
   // "tipo" en la base si algún día hace falta precisión.
   const [tipoSel, setTipoSel] = useState('');
   const [panelTipos, setPanelTipos] = useState(false);
-  const [masTipos, setMasTipos] = useState(false);
+  const [paginaTipos, setPaginaTipos] = useState(0);
+  const POR_PAGINA = 20;
   const tipoDe = (i: InventoryItem) => {
     const o = (i.detalle ?? '').trim().split(/[\s\-_/]+/)[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (/^\d*$/.test(o)) return '';
@@ -418,7 +419,7 @@ export default function SalaScreen() {
               </Pressable>
               {panelTipos && (
                 <View style={[styles.tiposPanel, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
-                  {([['', items.length], ...(masTipos ? tipos : tipos.slice(0, 19))] as [string, number][]).map(([e, n]) => {
+                  {([['', items.length], ...tipos] as [string, number][]).slice(paginaTipos * POR_PAGINA, (paginaTipos + 1) * POR_PAGINA).map(([e, n]) => {
                     const activo = tipoSel === e;
                     return (
                       <Pressable
@@ -437,11 +438,21 @@ export default function SalaScreen() {
                       </Pressable>
                     );
                   })}
-                  {tipos.length > 19 && (
-                    <Pressable accessibilityRole="button" onPress={() => setMasTipos((v) => !v)} style={({ pressed }) => [styles.chip, { borderColor: 'transparent' }, pressed && styles.presionado]}>
-                      <ThemedText type="smallBold" style={{ color: theme.accent }}>{masTipos ? 'Mostrar menos' : `Mostrar más (${tipos.length - 19})`}</ThemedText>
-                    </Pressable>
-                  )}
+                  {tipos.length + 1 > POR_PAGINA && (() => {
+                    const total = Math.ceil((tipos.length + 1) / POR_PAGINA);
+                    const ir = (d: number) => setPaginaTipos((p) => Math.min(Math.max(p + d, 0), total - 1));
+                    return (
+                      <View style={styles.tiposPaginas}>
+                        <Pressable accessibilityRole="button" accessibilityLabel="Página anterior" disabled={paginaTipos === 0} onPress={() => ir(-1)} style={[styles.chip, { borderColor: theme.backgroundSelected, opacity: paginaTipos === 0 ? 0.4 : 1 }]}>
+                          <ThemedText type="smallBold">‹</ThemedText>
+                        </Pressable>
+                        <ThemedText type="small" themeColor="textSecondary">{`${paginaTipos + 1} / ${total}`}</ThemedText>
+                        <Pressable accessibilityRole="button" accessibilityLabel="Página siguiente" disabled={paginaTipos >= total - 1} onPress={() => ir(1)} style={[styles.chip, { borderColor: theme.backgroundSelected, opacity: paginaTipos >= total - 1 ? 0.4 : 1 }]}>
+                          <ThemedText type="smallBold">›</ThemedText>
+                        </Pressable>
+                      </View>
+                    );
+                  })()}
                 </View>
               )}
             </View>
@@ -750,6 +761,7 @@ const styles = StyleSheet.create({
   filtroEscritorio: { flexDirection: 'row', alignItems: 'center' },
   filtroCampo: { flex: 1, minHeight: 46, borderRadius: 8, borderWidth: 1, paddingHorizontal: Spacing.three, fontSize: 15, outlineStyle: 'none' } as object,
   tiposBloque: { marginTop: Spacing.two, gap: Spacing.two, alignItems: 'flex-start' },
+  tiposPaginas: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.three },
   tiposBoton: { minHeight: 36, justifyContent: 'center' },
   tiposPanel: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, padding: Spacing.three, borderRadius: 12, borderWidth: 1 },
   chip: { paddingVertical: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: 999, borderWidth: 1 },
