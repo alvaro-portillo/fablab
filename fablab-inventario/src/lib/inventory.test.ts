@@ -771,3 +771,9 @@ describe('resumenImportacion', () => {
     expect(lineas.filter((l) => l.startsWith('fila ')).length).toBe(5);
   });
 });
+
+test('n.º de inventario sin espacios: exacto antes que prefijo', () => {
+  const mk = (codigo: string, inventario: string) => ({ codigo, inventario } as never);
+  const r = filtrarElementos([mk('A', '166501 141 851 03-10'), mk('B', '166501141 851 03-1'), mk('C', 'otro')], '166501 141 851 03-1');
+  expect(r.map((i: { codigo: string }) => i.codigo)).toEqual(['B', 'A']);
+});

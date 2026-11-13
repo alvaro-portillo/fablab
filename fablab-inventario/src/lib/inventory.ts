@@ -364,6 +364,8 @@ function normalize(text: string): string {
     .trim();
 }
 
+export const compacto = (t: string) => normalize(t).replace(/\s/g, '');
+
 type MatchResult = { item: InventoryItem; score: number };
 
 function matchItem(item: InventoryItem, words: string[]): MatchResult | null {
@@ -374,7 +376,15 @@ function matchItem(item: InventoryItem, words: string[]): MatchResult | null {
     fields.map((f) => [f, normalize(item[f] as string)]),
   );
 
+  // N.º de inventario/serial: se compara sin espacios ("166501 141 851 03-1" ≠ "…03-10").
+  const q = words.join('');
   let score = 0;
+  for (const f of ['inventario', 'serial'] as const) {
+    const v = compacto(item[f] as string);
+    if (v && v === q) score = Math.max(score, 1000);
+    else if (v && q.length >= 4 && v.startsWith(q)) score = Math.max(score, 500);
+  }
+  if (score) return { item, score };
   let allMatched = true;
 
   for (const word of words) {

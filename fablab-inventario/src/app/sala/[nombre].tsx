@@ -35,6 +35,7 @@ import {
   type InventoryItem,
   type Room,
   type TrasladoHistorial,
+  compacto,
 } from '@/lib/inventory';
 import { mensajeDeError } from '@/lib/mensajes';
 
@@ -265,6 +266,7 @@ export default function SalaScreen() {
 
   // Solo los campos que el usuario tocó van al PUT: el server rechaza un
   // update sin ningún campo editable ("Campos editables: ...").
+  const avisado = useRef('');
   async function handleSave() {
     if (!selected || saving) return;
     const campos = Object.fromEntries(
@@ -278,6 +280,14 @@ export default function SalaScreen() {
     }
     if (selected.id == null) {
       setSaveError('Este elemento no tiene id (no está en la base); no se puede editar.');
+      return;
+    }
+    // El mismo n.º de inventario en otro elemento (p. ej. sillas grises y negras): avisar una vez.
+    const inv = campos.inventario ? compacto(campos.inventario) : '';
+    const otro = inv && items.find((i) => i.id !== selected.id && compacto(i.inventario ?? '') === inv);
+    if (otro && avisado.current !== inv) {
+      avisado.current = inv;
+      setSaveError(`Ese n.º de inventario ya lo tiene ${otro.codigo || otro.detalle}. Guarda de nuevo si es correcto.`);
       return;
     }
     setSaving(true);
