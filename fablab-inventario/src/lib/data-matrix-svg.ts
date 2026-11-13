@@ -331,9 +331,11 @@ function ubicarEnLaGrilla({ medida, columna, fila }: UbicadaEtiqueta, plan: Plan
 function grupoEtiqueta(ubicada: UbicadaEtiqueta, plan: PlanHoja): string[] {
   const { medida } = ubicada;
   const { x, y } = ubicarEnLaGrilla(ubicada, plan);
+  const anchoGuia = Math.max(medida.anchoMm, medida.anchoTextoMm) + GUIA_MM * 2;
   return [
     `<g data-codigo="${escaparXml(medida.codigo)}">`,
-    `<rect x="${numero(x - GUIA_MM)}" y="${numero(y - GUIA_MM)}" width="${numero(medida.anchoMm + GUIA_MM * 2)}" height="${numero(medida.altoMm + GUIA_MM * 2)}" fill="none" stroke="#bbbbbb" stroke-width="0.15" stroke-dasharray="1 1"/>`,
+    // La guía abarca símbolo y texto: un código largo es más ancho que el símbolo.
+    `<rect x="${numero(centroDeColumna(ubicada.columna, plan) - anchoGuia / 2)}" y="${numero(y - GUIA_MM)}" width="${numero(anchoGuia)}" height="${numero(medida.altoMm + GUIA_MM * 2)}" fill="none" stroke="#bbbbbb" stroke-width="0.15" stroke-dasharray="1 1"/>`,
     ...rectangulosNegros(medida.matriz, plan.margenModulos, plan.moduloMm, x, y),
     // Centrado en la celda (no en el símbolo) y con el ancho declarado: la caja
     // del texto es la que midió el plan, así que la celda la contiene siempre.
