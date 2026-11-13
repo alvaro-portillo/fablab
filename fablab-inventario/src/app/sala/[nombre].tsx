@@ -390,7 +390,7 @@ export default function SalaScreen() {
             </View>
           )}
           {items.length > 8 && tipos.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chips}>
               {([['', items.length], ...tipos] as [string, number][]).map(([e, n]) => {
                 const activo = tipoSel === e;
                 return (
@@ -715,7 +715,9 @@ const styles = StyleSheet.create({
   filtro: { marginTop: Spacing.three, gap: Spacing.two },
   filtroEscritorio: { flexDirection: 'row', alignItems: 'center' },
   filtroCampo: { flex: 1, minHeight: 46, borderRadius: 8, borderWidth: 1, paddingHorizontal: Spacing.three, fontSize: 15, outlineStyle: 'none' } as object,
-  chips: { flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.two, paddingBottom: Spacing.one },
+  // La fila corre hasta el borde de la pantalla: antes se cortaba en el margen del contenido.
+  chipsScroll: { marginHorizontal: -Spacing.four },
+  chips: { flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.two, paddingBottom: Spacing.one, paddingHorizontal: Spacing.four },
   chip: { paddingVertical: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: 999, borderWidth: 1 },
   filtroLimpiar: { minHeight: 46, justifyContent: 'center', paddingHorizontal: Spacing.two },
   presionado: { opacity: 0.6 },

@@ -94,7 +94,7 @@ export default function InventoryScreen() {
                   onHoverOut={() => setResaltada((id) => (id === sala.id ? null : id))}
                   style={({ pressed }) => [
                     styles.roomCard,
-                    estiloRejilla(columnas),
+                    estiloRejilla(columnas, Spacing.two + Spacing.one),
                     { backgroundColor: theme.backgroundElement, borderColor: activa || pressed ? theme.accent : theme.backgroundSelected },
                     pressed && styles.roomCardPressed,
                   ]}>
@@ -126,7 +126,7 @@ export default function InventoryScreen() {
             {!salas.length && cargando && Array.from({ length: columnas * 3 }).map((_, i) => (
               <View
                 key={`hueco-${i}`}
-                style={[styles.roomCard, styles.roomCardHueco, estiloRejilla(columnas), { backgroundColor: theme.backgroundElement }]}
+                style={[styles.roomCard, styles.roomCardHueco, estiloRejilla(columnas, Spacing.two + Spacing.one), { backgroundColor: theme.backgroundElement }]}
               />
             ))}
             {!salas.length && !cargando && (

@@ -2,7 +2,7 @@
 // como el monitor: una sola columna de 800 px ahí se ve como un celular
 // estirado, así que desde Breakpoints.escritorio el contenido se ensancha y las
 // listas pasan a varias columnas. En celular no cambia nada.
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 
 import { Breakpoints } from '@/constants/theme';
 
@@ -20,7 +20,7 @@ export function useDisposicion() {
  * llenar la suya, pero no más — sin el tope, la última fila (la que queda
  * incompleta) estiraría una sola tarjeta de lado a lado.
  */
-export function estiloRejilla(columnas: number) {
+export function estiloRejilla(columnas: number, gap = 8) {
   if (columnas <= 1) return null;
   const porFila = Math.min(Math.max(Math.round(columnas), 2), 4);
   // El tope en % (y no en px) es lo que hace que la última fila no estire una
@@ -28,6 +28,10 @@ export function estiloRejilla(columnas: number) {
   return {
     flexBasis: porFila === 4 ? 280 : porFila === 3 ? 300 : 340,
     flexGrow: 1,
-    maxWidth: porFila === 4 ? '23.5%' : porFila === 3 ? '32%' : '48%',
+    // En web el tope es exacto (descuenta el gap de 8 px); con % redondos sobraba
+    // margen a la derecha.
+    maxWidth: Platform.OS === 'web'
+      ? (`calc((100% - ${gap * (porFila - 1)}px) / ${porFila})` as '48%')
+      : porFila === 4 ? '23.5%' : porFila === 3 ? '32%' : '48%',
   } as const;
 }
