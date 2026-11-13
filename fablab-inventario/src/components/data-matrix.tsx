@@ -26,8 +26,10 @@ export function DataMatrixCode({ value, size = 160 }: { value: string; size?: nu
   const { matrix, width, height } = encodeToMatrix(value);
 
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${width} ${height}`}>
-      <Rect x={0} y={0} width={width} height={height} fill="#FFFFFF" />
+    // Zona de silencio blanca de 2 módulos: sin ella, en modo oscuro el fondo
+    // negro de la página pega al borde del código y el lector no lo encuentra.
+    <Svg width={size} height={size} viewBox={`-2 -2 ${width + 4} ${height + 4}`}>
+      <Rect x={-2} y={-2} width={width + 4} height={height + 4} fill="#FFFFFF" />
       {matrix.flatMap((row, y) =>
         row.map((cell, x) =>
           cell ? <Rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="#000000" /> : null,

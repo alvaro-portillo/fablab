@@ -87,8 +87,19 @@ export default function SalaScreen() {
   // consulta devuelve la lista tal cual.
   const [filtro, setFiltro] = useState('');
   const [filtroEnfocado, setFiltroEnfocado] = useState(false);
-  const visibles = useMemo(() => filtrarElementos(items, filtro), [items, filtro]);
-  const filtrando = filtro.trim() !== '';
+  // Filtro rápido por tipo: el nombre sin el número final ("Arduino uno 3" → "Arduino uno").
+  const [tipoSel, setTipoSel] = useState('');
+  const tipoDe = (i: InventoryItem) => (i.detalle ?? '').trim().replace(/[\s\-#.]*\d+$/, '').trim();
+  const tipos = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const i of items) { const t = tipoDe(i); if (t) n.set(t, (n.get(t) ?? 0) + 1); }
+    return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [items]);
+  const visibles = useMemo(
+    () => filtrarElementos(tipoSel ? items.filter((i) => tipoDe(i) === tipoSel) : items, filtro),
+    [items, filtro, tipoSel],
+  );
+  const filtrando = filtro.trim() !== '' || tipoSel !== '';
 
   // Rejilla de fichas: en celular dos columnas — antes eran píldoras de una
   // línea con borde rojo y 171 elementos hacían una pared de bordes; en
@@ -371,19 +382,42 @@ export default function SalaScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Limpiar el filtro"
-                  onPress={() => setFiltro('')}
+                  onPress={() => { setFiltro(''); setTipoSel(''); }}
                   style={({ pressed }) => [styles.filtroLimpiar, pressed && styles.presionado]}>
                   <ThemedText type="smallBold" style={{ color: theme.accent }}>Limpiar</ThemedText>
                 </Pressable>
               )}
             </View>
           )}
+          {items.length > 8 && tipos.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+              {([['', items.length], ...tipos] as [string, number][]).map(([e, n]) => {
+                const activo = tipoSel === e;
+                return (
+                  <Pressable
+                    key={e || 'todos'}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: activo }}
+                    onPress={() => setTipoSel(activo ? '' : e)}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      { backgroundColor: activo ? theme.accent : theme.backgroundElement, borderColor: activo ? theme.accent : theme.backgroundSelected },
+                      pressed && styles.presionado,
+                    ]}>
+                    <ThemedText type="small" style={{ color: activo ? '#fff' : theme.text }}>
+                      {`${e || 'Todos'} (${n})`}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
 
           {filtrando && visibles.length === 0 && (
             <View style={[styles.aviso, styles.avisoFiltro, { borderColor: `${theme.accent}44`, backgroundColor: `${theme.accent}0F` }]}>
               <ThemedText type="smallBold">Sin coincidencias</ThemedText>
               <ThemedText themeColor="textSecondary" type="small" style={styles.avisoTexto}>
-                Ningún elemento de esta sala coincide con «{filtro.trim()}».
+                Ningún elemento de esta sala coincide con el filtro.
               </ThemedText>
             </View>
           )}
@@ -680,7 +714,9 @@ const styles = StyleSheet.create({
   // resto de la app.
   filtro: { marginTop: Spacing.three, gap: Spacing.two },
   filtroEscritorio: { flexDirection: 'row', alignItems: 'center' },
-  filtroCampo: { flex: 1, minHeight: 46, borderRadius: 8, borderWidth: 1, paddingHorizontal: Spacing.three, fontSize: 15 },
+  filtroCampo: { flex: 1, minHeight: 46, borderRadius: 8, borderWidth: 1, paddingHorizontal: Spacing.three, fontSize: 15, outlineStyle: 'none' } as object,
+  chips: { flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.two, paddingBottom: Spacing.one },
+  chip: { paddingVertical: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: 999, borderWidth: 1 },
   filtroLimpiar: { minHeight: 46, justifyContent: 'center', paddingHorizontal: Spacing.two },
   presionado: { opacity: 0.6 },
   // gap de 8 y no de 16: con el tope del 48.5% por ficha, un gap mayor no deja
