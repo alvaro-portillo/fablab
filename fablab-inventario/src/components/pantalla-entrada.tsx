@@ -305,7 +305,9 @@ export function PantallaEntrada() {
           <View style={styles.campoClave}>
             <TextInput
               accessibilityLabel="Clave"
-              value={clave}
+              // Sin `value`: un input controlado escribe la clave en el atributo
+              // value del DOM, y cualquier volcado del DOM (p. ej. avisos de
+              // Turnstile en consola) la mostraría.
               onChangeText={setClave}
               secureTextEntry={!verClave}
               autoComplete="current-password"
