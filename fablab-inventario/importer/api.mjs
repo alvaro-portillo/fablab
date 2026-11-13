@@ -1221,7 +1221,7 @@ const DDL_USUARIOS = `CREATE TABLE IF NOT EXISTS usuarios (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
 const ROLES_BASE = [
   ['Administrador', PERMISOS],
-  ['Practicante', ['editar_cantidad']],
+  ['Practicante', ['editar', 'editar_cantidad', 'agregar', 'fotos']],
   ['Visitante', []],
 ];
 
@@ -1256,10 +1256,12 @@ export async function listarRoles(cfg = conexionDesdeEnv()) {
 }
 export async function guardarRol({ id, nombre, permisos }, cfg = conexionDesdeEnv()) {
   const n = nombreValido(nombre, 'nombre');
+  if (n === 'Administrador') throw new ErrorApi('El nombre Administrador está reservado', 409);
   const p = JSON.stringify(validarPermisos(permisos));
   return conectar(cfg, async (conn) => {
     try {
       if (id) {
+        await rolNoFijo(conn, id);
         const [r] = await conn.query('UPDATE roles SET nombre = ?, permisos = ? WHERE id = ?', [n, p, id]);
         if (!r.affectedRows) throw new ErrorApi('El rol no existe', 404);
         return { id };
@@ -1272,8 +1274,16 @@ export async function guardarRol({ id, nombre, permisos }, cfg = conexionDesdeEn
     }
   });
 }
+// El rol Administrador es fijo (todos los permisos): no se edita ni se borra,
+// así nadie deja al laboratorio sin quien administre.
+async function rolNoFijo(conn, id) {
+  const [[rol]] = await conn.query('SELECT nombre FROM roles WHERE id = ?', [id]);
+  if (rol?.nombre === 'Administrador') throw new ErrorApi('El rol Administrador es fijo: siempre tiene todos los permisos', 409);
+}
+
 export async function borrarRol(id, cfg = conexionDesdeEnv()) {
   return conectar(cfg, async (conn) => {
+    await rolNoFijo(conn, id);
     const [[uso]] = await conn.query('SELECT COUNT(*) n FROM usuarios WHERE rol_id = ?', [id]);
     if (uso.n) throw new ErrorApi('El rol tiene usuarios: cámbialos de rol primero', 409);
     const [r] = await conn.query('DELETE FROM roles WHERE id = ?', [id]);

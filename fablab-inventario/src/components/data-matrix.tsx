@@ -9,7 +9,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Spacing, RojoTexto } from '@/constants/theme';
 import {
   nombreArchivoDataMatrix,
   nombreArchivoHoja,
@@ -310,13 +310,13 @@ function DownloadIcon({ color }: { color: string }) {
 const styles = StyleSheet.create({
   downloadBox: { alignItems: 'center', gap: Spacing.half },
   downloadButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.one, minHeight: 44, borderRadius: 8, backgroundColor: '#C8102E', paddingHorizontal: Spacing.three },
-  downloadButtonCompacta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.half, minHeight: 34, borderRadius: 17, borderWidth: 1, borderColor: '#C8102E', paddingHorizontal: Spacing.two },
+  downloadButtonCompacta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.half, minHeight: 34, borderRadius: 17, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two },
   downloadButtonOcupado: { opacity: 0.6 },
   downloadLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  downloadLabelCompacta: { color: '#C8102E', fontWeight: '700', fontSize: 13 },
-  downloadError: { color: '#C8102E', fontSize: 13, textAlign: 'center' },
+  downloadLabelCompacta: { color: RojoTexto, fontWeight: '700', fontSize: 13 },
+  downloadError: { color: RojoTexto, fontSize: 13, textAlign: 'center' },
   downloadHint: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
-  downloadAviso: { color: '#C8102E', fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  downloadAviso: { color: RojoTexto, fontSize: 13, textAlign: 'center', lineHeight: 18 },
   sheetBox: { alignItems: 'center', gap: Spacing.half, width: '100%' },
   pressed: { opacity: 0.78 },
 });

@@ -9,19 +9,19 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
+    text: '#16171A',
     accent: '#C8102E',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    background: '#F6F6F8',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#ECECF0',
+    textSecondary: '#6B6F76',
   },
   dark: {
-    text: '#ffffff',
-    accent: '#F05A6E',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
+    text: '#F2F2F4',
+    accent: '#FF6B7D',
+    background: '#0E0F11',
+    backgroundElement: '#1A1B1E',
+    backgroundSelected: '#2A2C30',
     textSecondary: '#B0B4BA',
   },
 } as const;
@@ -85,3 +85,13 @@ export const Breakpoints = {
   /** Desde aquí la ventana es de escritorio: sobra ancho para varias columnas. */
   escritorio: 1000,
 } as const;
+
+/** Sombra suave común a las tarjetas (solo web la dibuja; en nativo se ignora). */
+export const SombraTarjeta = { boxShadow: '0 1px 2px rgba(16,17,20,0.04), 0 4px 12px rgba(16,17,20,0.04)' } as const;
+
+/**
+ * Rojo para texto y bordes que sigue al tema en web: los StyleSheet son fijos,
+ * así que se apunta a una variable CSS que _layout cambia con el modo. En el
+ * oscuro el rojo de marca casi no se leía sobre el fondo. En nativo, rojo fijo.
+ */
+export const RojoTexto = Platform.OS === 'web' ? 'var(--rojo-texto, #C8102E)' : '#C8102E';

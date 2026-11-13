@@ -68,7 +68,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   const { escritorio } = useDisposicion();
   return (
-    <View {...props} style={[styles.tabListContainer, props.style]}>
+    <ThemedView {...props} style={[styles.tabListContainer, props.style]}>
       <ThemedView type="backgroundElement" style={[styles.innerContainer, escritorio && styles.innerContainerEscritorio]}>
         <ThemedText type="smallBold" style={styles.brandText}>
           FabLab UFPS
@@ -76,7 +76,7 @@ export function CustomTabList(props: TabListProps) {
 
         {props.children}
       </ThemedView>
-    </View>
+    </ThemedView>
   );
 }
 
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     padding: Spacing.three,
+    zIndex: 10,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   brandText: {
     marginRight: 'auto',
   },
-  barraFija: { bottom: 0 },
+  barraFija: { top: 0 },
   pressed: {
     opacity: 0.7,
   },

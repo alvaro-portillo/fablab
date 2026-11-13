@@ -17,6 +17,12 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="manifest" href="/manifest.json" />
         {/* iOS no usa el manifest para "Añadir a pantalla de inicio". */}
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/* Spline Sans ya era la fuente de --font-display, pero nunca se cargaba. */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&display=swap"
+        />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

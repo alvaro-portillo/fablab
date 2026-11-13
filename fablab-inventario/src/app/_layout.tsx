@@ -32,9 +32,18 @@ export default function RootLayout() {
   }, [usuario]);
 
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState<AppThemeMode>(
-    systemColorScheme === 'dark' ? 'dark' : 'light',
-  );
+  // En web el modo elegido se recuerda: si no, cada recarga volvía al del sistema.
+  const [themeMode, setThemeMode] = useState<AppThemeMode>(() => {
+    try {
+      const guardado = globalThis.localStorage?.getItem('tema');
+      if (guardado === 'dark' || guardado === 'light') return guardado;
+    } catch { /* sin almacenamiento: se usa el del sistema */ }
+    return systemColorScheme === 'dark' ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    globalThis.document?.documentElement.style.setProperty('--rojo-texto', themeMode === 'dark' ? '#FF6B7D' : '#C8102E');
+  }, [themeMode]);
 
   return (
     <ThemeModeContext.Provider value={themeMode}>
@@ -42,6 +51,7 @@ export default function RootLayout() {
         value={() => {
           setThemeMode((mode) => {
             const next = mode === 'dark' ? 'light' : 'dark';
+            try { globalThis.localStorage?.setItem('tema', next); } catch { /* no-op */ }
             // Aplica el esquema a nivel nativo (root view, barras del sistema):
             // solo cambiar el estado dejaba el chrome nativo en oscuro en Expo Go.
             // En web Appearance.setColorScheme no existe (react-native-web) → no-op seguro.

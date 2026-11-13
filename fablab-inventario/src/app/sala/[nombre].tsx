@@ -12,7 +12,7 @@ import { DataMatrixCode, DataMatrixDownloadButton, DataMatrixSheetButton } from 
 import { prepararFotoParaSubir } from '@/lib/foto-optimizar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing, SombraTarjeta, RojoTexto } from '@/constants/theme';
 import { estiloRejilla, useDisposicion } from '@/hooks/use-disposicion';
 import { useTheme, useThemeMode } from '@/hooks/use-theme';
 import { useSesion } from '@/hooks/use-sesion';
@@ -668,9 +668,9 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, alignItems: 'center', paddingBottom: BottomTabInset + Spacing.four },
   content: { width: '100%', maxWidth: MaxContentWidth, paddingHorizontal: Spacing.four, paddingBottom: BottomTabInset + Spacing.four },
   contentEscritorio: { maxWidth: MaxContentWidthEscritorio },
-  backButton: { marginTop: Spacing.six, alignSelf: 'flex-start' },
-  backLabel: { color: '#C8102E' },
-  title: { color: '#C8102E', marginTop: Spacing.two },
+  backButton: { marginTop: Spacing.six + Spacing.four, alignSelf: 'flex-start' },
+  backLabel: { color: RojoTexto },
+  title: { color: RojoTexto, marginTop: Spacing.two },
   subtitle: { marginTop: Spacing.one, lineHeight: 21 },
   sheetAction: { width: '100%', marginTop: Spacing.four },
   aviso: { width: '100%', borderRadius: 12, padding: Spacing.four },
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   // gap de 8 y no de 16: con el tope del 48.5% por ficha, un gap mayor no deja
   // entrar dos columnas en un celular de 400 px y las fichas caían de a una.
   pillList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, marginTop: Spacing.four, width: '100%' },
-  tile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderRadius: 12, borderWidth: 1, paddingVertical: Spacing.two, paddingHorizontal: Spacing.two + Spacing.one, minHeight: 64, overflow: 'hidden' },
+  tile: { ...SombraTarjeta, flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderRadius: 16, borderWidth: 1, paddingVertical: Spacing.two, paddingHorizontal: Spacing.two + Spacing.one, minHeight: 64, overflow: 'hidden' },
   tilePressed: { opacity: 0.88 },
   tileHueco: { opacity: 0.5, borderColor: 'transparent' },
   tileTexto: { flex: 1, gap: Spacing.half },
@@ -694,21 +694,21 @@ const styles = StyleSheet.create({
   thumb: { width: 44, height: 44, borderRadius: 10 },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12 },
   photoActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one, marginTop: Spacing.two },
-  photoButton: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C8102E', paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
+  photoButton: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
   photoButtonPrimario: { paddingHorizontal: Spacing.three },
-  photoButtonLabel: { color: '#C8102E', fontSize: 13, fontWeight: '700' },
+  photoButtonLabel: { color: RojoTexto, fontSize: 13, fontWeight: '700' },
   photoButtonLabelPrimario: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   photoPlaceholder: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: '#C8102E11', alignItems: 'center', justifyContent: 'center' },
   detailLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   seccion: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
   seccionTitulo: { textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
-  removeButton: { minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: '#C8102E', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two },
+  removeButton: { minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: RojoTexto, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two },
   saveButton: { backgroundColor: '#C8102E', borderWidth: 0 },
   // Blanco sobre el botón rojo: removeButtonLabel es rojo (botón fantasma) y
   // sobre el fondo rojo dejaba el texto invisible.
   saveButtonLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
   buttonDisabled: { opacity: 0.6 },
-  errorText: { color: '#C8102E' },
+  errorText: { color: RojoTexto },
   // Pie de la ficha: Guardar ocupa dos tercios y Eliminar el resto, así caben
   // en una sola línea en cualquier celular.
   modalPie: { flexDirection: 'row', gap: Spacing.two, padding: Spacing.three, paddingHorizontal: Spacing.four, borderTopWidth: 1 },
@@ -720,8 +720,8 @@ const styles = StyleSheet.create({
   inputEnfocado: { boxShadow: '0 0 0 3px rgba(200, 16, 46, 0.16)' },
   inputEnfocadoOscuro: { boxShadow: '0 0 0 3px rgba(240, 90, 110, 0.22)' },
   roomChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  roomChip: { minHeight: 34, borderRadius: 17, borderWidth: 1, borderColor: '#C8102E', paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
-  roomChipLabel: { color: '#C8102E', fontSize: 13 },
+  roomChip: { minHeight: 34, borderRadius: 17, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
+  roomChipLabel: { color: RojoTexto, fontSize: 13 },
   trasladoRow: { gap: 1, paddingVertical: 2 },
   etiquetaBox: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.three, borderRadius: 12 },
   etiquetaHint: { textAlign: 'center' },

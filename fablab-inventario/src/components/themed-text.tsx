@@ -15,7 +15,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   return (
     <Text
       style={[
-        { color: theme[themeColor ?? 'text'] },
+        { color: theme[themeColor ?? 'text'], fontFamily: Fonts.sans },
         type === 'default' && styles.default,
         type === 'title' && styles.title,
         type === 'small' && styles.small,
@@ -51,11 +51,13 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 600,
     lineHeight: 52,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 32,
     lineHeight: 44,
     fontWeight: 600,
+    letterSpacing: -0.5,
   },
   link: {
     lineHeight: 30,

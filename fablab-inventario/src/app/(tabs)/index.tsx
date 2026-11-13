@@ -13,7 +13,7 @@ import { DataMatrixCode, DataMatrixDownloadButton, DataMatrixSheetButton, descar
 import { Scanner } from '@/components/scanner';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxAnchoControlEscritorio, MaxContentWidth, MaxContentWidthEscritorio, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxAnchoControlEscritorio, MaxContentWidth, MaxContentWidthEscritorio, Spacing, SombraTarjeta, RojoTexto } from '@/constants/theme';
 import { useDisposicion } from '@/hooks/use-disposicion';
 import { useSesion } from '@/hooks/use-sesion';
 import { useTheme, useThemeMode, useToggleTheme } from '@/hooks/use-theme';
@@ -318,7 +318,7 @@ export default function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push('/admin' as Href)}
-              style={({ pressed }) => [styles.cuentaPildora, { borderColor: theme.textSecondary }, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.cuentaPildora, { borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}>
               <ThemedText type="smallBold" style={styles.cuentaSalir}>Usuarios</ThemedText>
             </Pressable>
           )}
@@ -326,12 +326,12 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Cerrar la sesión de ${usuario ?? 'la cuenta'}`}
             onPress={salir}
-            style={({ pressed }) => [styles.cuentaPildora, { borderColor: theme.textSecondary }, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.cuentaPildora, { borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}>
             <PersonIcon color={theme.textSecondary} />
             <ThemedText type="small" themeColor="textSecondary">{usuario}</ThemedText>
             <ThemedText type="smallBold" style={styles.cuentaSalir}>Salir</ThemedText>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cambiar modo claro u oscuro" onPress={toggleTheme} style={styles.themeButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cambiar modo claro u oscuro" onPress={toggleTheme} style={[styles.themeButton, { borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }]}>
             {themeMode === 'dark' ? <SunIcon color={theme.accent} /> : <MoonIcon color={theme.accent} />}
           </Pressable>
         </View>
@@ -759,8 +759,8 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, width: '100%', alignSelf: 'center', maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.four },
   scrollContentEscritorio: { maxWidth: MaxContentWidthEscritorio },
   header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.six },
-  themeButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#C8102E', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
-  title: { marginTop: Spacing.two, color: '#C8102E', alignSelf: 'flex-start' },
+  themeButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
+  title: { marginTop: Spacing.two, color: RojoTexto, alignSelf: 'flex-start' },
   subtitle: { alignSelf: 'flex-start', marginTop: Spacing.one },
   // Marca en el encabezado: el cubo (la parte del logo que sí se lee a tamaño
   // chico) junto al nombre, y el mosaico UFPS junto a la universidad.
@@ -773,8 +773,8 @@ const styles = StyleSheet.create({
   institucionTexto: { marginTop: 0, alignSelf: 'center' },
   actionList: { width: '100%', gap: Spacing.three, marginTop: Spacing.six },
   resumen: { flexDirection: 'row', gap: Spacing.three },
-  resumenTarjeta: { flex: 1, borderRadius: 12, paddingVertical: Spacing.three, paddingHorizontal: Spacing.four },
-  resumenNumero: { fontSize: 28, lineHeight: 34, fontWeight: '700', color: '#C8102E' },
+  resumenTarjeta: { ...SombraTarjeta, flex: 1, borderRadius: 16, paddingVertical: Spacing.three, paddingHorizontal: Spacing.four },
+  resumenNumero: { fontSize: 28, lineHeight: 34, fontWeight: '700', color: RojoTexto },
   panelTitulo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   panelIcono: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#C8102E', alignItems: 'center', justifyContent: 'center' },
   panelTituloTexto: { fontSize: 22, lineHeight: 28 },
@@ -782,13 +782,13 @@ const styles = StyleSheet.create({
   fichasColumna: { flexDirection: 'column' },
   fichaTexto: { flex: 1, minWidth: 0 },
   // La ficha entera es el botón: icono, texto y chevron en una sola fila.
-  ficha: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: 12, borderWidth: 2, padding: Spacing.three },
+  ficha: { ...SombraTarjeta, flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: 16, borderWidth: 2, padding: Spacing.three },
   fichaIcono: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#C8102E', alignItems: 'center', justifyContent: 'center' },
   fichaTitulo: { fontSize: 17, fontWeight: '700' },
   fichaPista: { lineHeight: 17 },
-  actionPanel: { borderRadius: 12, padding: Spacing.three, gap: Spacing.three },
+  actionPanel: { ...SombraTarjeta, borderRadius: 16, padding: Spacing.three, gap: Spacing.three },
   description: { lineHeight: 21 },
-  errorText: { color: '#C8102E', lineHeight: 21 },
+  errorText: { color: RojoTexto, lineHeight: 21 },
   inputGroup: { gap: Spacing.one },
   // Campos del formulario de alta: en celular van uno debajo del otro y en
   // escritorio de a dos por fila (una sola columna de 720 px obligaba a bajar
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   pareja: { gap: Spacing.three },
   parejaEscritorio: { flexDirection: 'row', gap: Spacing.two },
   campoRejilla: { flexBasis: 440, flexGrow: 1, maxWidth: '48.5%' },
-  inputLabel: { color: '#C8102E' },
+  inputLabel: { color: RojoTexto },
   input: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: Spacing.two, fontSize: 16 },
   // De lado a lado (1100 px) el campo se ve como una franja vacía.
   inputEscritorio: { maxWidth: MaxAnchoControlEscritorio },
@@ -813,32 +813,32 @@ const styles = StyleSheet.create({
   inputEnfocado: { boxShadow: '0 0 0 3px rgba(200, 16, 46, 0.16)' },
   inputEnfocadoOscuro: { boxShadow: '0 0 0 3px rgba(240, 90, 110, 0.22)' },
   cuentaPildora: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, minHeight: 40, paddingHorizontal: Spacing.three, borderWidth: 1, borderRadius: 20 },
-  cuentaSalir: { color: '#C8102E' },
+  cuentaSalir: { color: RojoTexto },
   roomChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   photoPreview: { width: '100%', aspectRatio: 4 / 3, borderRadius: 8, marginBottom: Spacing.one },
   photoMeta: { lineHeight: 18 },
-  photoButton: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C8102E', paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
-  photoButtonLabel: { color: '#C8102E', fontSize: 13, fontWeight: '700' },
+  photoButton: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
+  photoButtonLabel: { color: RojoTexto, fontSize: 13, fontWeight: '700' },
   codePreview: { alignItems: 'center', gap: Spacing.one, paddingVertical: Spacing.two },
   codeLabel: { letterSpacing: 1 },
-  roomChip: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C8102E', paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
+  roomChip: { minHeight: 36, borderRadius: 18, borderWidth: 1, borderColor: RojoTexto, paddingHorizontal: Spacing.two, alignItems: 'center', justifyContent: 'center' },
   roomChipSelected: { backgroundColor: '#C8102E' },
-  roomChipLabel: { color: '#C8102E', fontSize: 14 },
+  roomChipLabel: { color: RojoTexto, fontSize: 14 },
   roomChipLabelSelected: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   // Aviso con el acento del tema (código sin coincidencias): el borde y el fondo
   // salen del acento, así en modo oscuro se ve igual de bien que en claro.
   aviso: { gap: Spacing.half, borderWidth: 1, borderRadius: 12, padding: Spacing.three },
   avisoTexto: { lineHeight: 19 },
-  searchCount: { marginTop: Spacing.two, alignSelf: 'flex-start', color: '#C8102E', fontSize: 13, fontWeight: '600' },
+  searchCount: { marginTop: Spacing.two, alignSelf: 'flex-start', color: RojoTexto, fontSize: 13, fontWeight: '600' },
   searchCard: { width: '100%', borderRadius: 10, borderWidth: 1, borderColor: '#C8102E22', padding: Spacing.three, gap: Spacing.one, marginTop: Spacing.one },
   // En escritorio las fichas de resultado van en dos columnas (una fila de 1160 px
   // por resultado desperdiciaba la mitad del panel).
   searchResultsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   searchCardEscritorio: { width: 'auto', flexBasis: 440, flexGrow: 1, maxWidth: '48.5%' },
   searchCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.one },
-  searchCardCode: { fontSize: 15, color: '#C8102E', letterSpacing: 0.5 },
+  searchCardCode: { fontSize: 15, color: RojoTexto, letterSpacing: 0.5 },
   roomBadge: { backgroundColor: '#C8102E15', borderRadius: 6, paddingHorizontal: Spacing.two, paddingVertical: 2 },
-  roomBadgeText: { fontSize: 11, color: '#C8102E', fontWeight: '600' },
+  roomBadgeText: { fontSize: 11, color: RojoTexto, fontWeight: '600' },
   searchCardDetalle: { fontSize: 15, fontWeight: '600' },
   searchCardMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.half },
   searchCardNota: { marginTop: Spacing.half },
@@ -857,9 +857,9 @@ const styles = StyleSheet.create({
   exportButton: { flex: 1, minHeight: 48, borderRadius: 8, backgroundColor: '#C8102E', alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
   exportButtonLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: 14, textAlign: 'center' },
   exportEstado: { lineHeight: 19 },
-  exportButtonGhost: { flex: 1, minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: '#C8102E', alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
+  exportButtonGhost: { flex: 1, minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: RojoTexto, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
   exportButtonGhostEscritorio: { maxWidth: MaxAnchoControlEscritorio },
-  exportButtonGhostLabel: { color: '#C8102E', fontWeight: '700', fontSize: 14, textAlign: 'center' },
+  exportButtonGhostLabel: { color: RojoTexto, fontWeight: '700', fontSize: 14, textAlign: 'center' },
   panelButton: { minHeight: 48, borderRadius: 8, backgroundColor: '#C8102E', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.one },
   // En escritorio el botón no se estira a lo ancho: mide lo que su texto y queda
   // a la izquierda (en celular sí ocupa todo, que es lo que se alcanza con el

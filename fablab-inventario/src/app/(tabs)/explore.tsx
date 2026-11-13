@@ -12,7 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing, SombraTarjeta, RojoTexto } from '@/constants/theme';
 import { estiloRejilla, useDisposicion } from '@/hooks/use-disposicion';
 import { useTheme } from '@/hooks/use-theme';
 import { listarSalas, resetCache, type Room } from '@/lib/inventory';
@@ -21,6 +21,8 @@ export default function InventoryScreen() {
   const { escritorio, columnas } = useDisposicion();
   const theme = useTheme();
   const [salas, setSalas] = useState<Room[]>([]);
+  // Si todas las salas están en el mismo edificio, repetirlo en cada tarjeta solo estorba.
+  const variosEdificios = new Set(salas.map((s) => s.edificio)).size > 1;
   // listarSalas devuelve [] tanto si falló la red como si no hay salas; con 11
   // salas cargadas, un resultado vacío tras terminar la carga es un fallo.
   const [cargando, setCargando] = useState(true);
@@ -93,10 +95,9 @@ export default function InventoryScreen() {
                   style={({ pressed }) => [
                     styles.roomCard,
                     estiloRejilla(columnas),
-                    { backgroundColor: theme.backgroundElement, borderColor: activa || pressed ? theme.accent : 'transparent' },
+                    { backgroundColor: theme.backgroundElement, borderColor: activa || pressed ? theme.accent : theme.backgroundSelected },
                     pressed && styles.roomCardPressed,
                   ]}>
-                  <View style={[styles.roomAccent, { backgroundColor: theme.accent }]} />
                   <View style={styles.roomHead}>
                     <ThemedText type="subtitle" style={styles.roomTitle} numberOfLines={1}>{sala.nombre}</ThemedText>
                     <View style={[styles.roomCount, { backgroundColor: theme.backgroundSelected }]}>
@@ -112,9 +113,11 @@ export default function InventoryScreen() {
                       />
                     </Svg>
                   </View>
-                  <ThemedText themeColor="textSecondary" type="small" numberOfLines={1}>
-                    {sala.edificio}
-                  </ThemedText>
+                  {variosEdificios && (
+                    <ThemedText themeColor="textSecondary" type="small" numberOfLines={1}>
+                      {sala.edificio}
+                    </ThemedText>
+                  )}
                 </Pressable>
               );
             })}
@@ -158,21 +161,20 @@ const styles = StyleSheet.create({
   content: { width: '100%', maxWidth: MaxContentWidth, paddingHorizontal: Spacing.four, paddingBottom: BottomTabInset + Spacing.four },
   contentEscritorio: { maxWidth: MaxContentWidthEscritorio },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two, marginTop: Spacing.six },
-  title: { color: '#C8102E' },
-  refreshLabel: { color: '#C8102E', fontWeight: '700', fontSize: 14 },
+  title: { color: RojoTexto },
+  refreshLabel: { color: RojoTexto, fontWeight: '700', fontSize: 14 },
   intro: { marginTop: Spacing.one, lineHeight: 21 },
-  roomList: { gap: Spacing.three, marginTop: Spacing.five, width: '100%' },
+  roomList: { gap: Spacing.two + Spacing.one, marginTop: Spacing.five, width: '100%' },
   roomListEscritorio: { flexDirection: 'row', flexWrap: 'wrap' },
-  roomCard: { minHeight: 88, borderRadius: 12, paddingVertical: Spacing.three, paddingHorizontal: Spacing.four, paddingLeft: Spacing.four + Spacing.one, overflow: 'hidden', gap: Spacing.two, borderWidth: 1 },
+  roomCard: { ...SombraTarjeta, minHeight: 72, borderRadius: 16, paddingVertical: Spacing.three, paddingHorizontal: Spacing.four, overflow: 'hidden', gap: Spacing.one, borderWidth: 1, justifyContent: 'center' },
   roomCardPressed: { opacity: 0.88 },
   roomCardHueco: { opacity: 0.5, borderColor: 'transparent' },
-  roomAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, backgroundColor: '#C8102E' },
   roomHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  roomTitle: { flex: 1, fontSize: 20, lineHeight: 26 },
+  roomTitle: { flex: 1, fontSize: 18, lineHeight: 24, letterSpacing: -0.2 },
   roomCount: { minWidth: 34, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half, alignItems: 'center' },
   roomCountText: { fontSize: 13, fontWeight: '700' },
   errorBox: { width: '100%', borderRadius: 12, padding: Spacing.four, gap: Spacing.three, alignItems: 'flex-start' },
-  errorText: { color: '#C8102E', lineHeight: 21 },
+  errorText: { color: RojoTexto, lineHeight: 21 },
   primaryButton: { minHeight: 36, borderRadius: 8, backgroundColor: '#C8102E', paddingHorizontal: Spacing.three, alignItems: 'center', justifyContent: 'center' },
   primaryButtonLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
   privacy: { marginTop: Spacing.six, paddingTop: Spacing.four, borderTopWidth: 1, width: '100%' },
