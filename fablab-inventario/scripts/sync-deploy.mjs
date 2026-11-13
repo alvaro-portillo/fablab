@@ -39,7 +39,8 @@ const SYNC_PREFIX = 'Sync desde monorepo';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://fablab-api-sr1q.onrender.com/api';
 // Sitekey del captcha Turnstile (PÚBLICO, se horna igual que la URL). Vacío =
 // el bundle sale sin captcha y el login queda como antes. Override: env var igual.
-const TURNSTILE_SITEKEY = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY || '';
+// ponytail: sitekey pública de prod por defecto; sin ella la web sale sin captcha y el server (con TURNSTILE_SECRET) rechaza todo login.
+const TURNSTILE_SITEKEY = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY ?? '0x4AAAAAAFYlks1WjOkjFCzI';
 
 const TARGETS = {
   api: {
