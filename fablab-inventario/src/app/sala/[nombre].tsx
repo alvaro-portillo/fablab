@@ -10,6 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { DataMatrixCode, DataMatrixDownloadButton, DataMatrixSheetButton } from '@/components/data-matrix';
 import { prepararFotoParaSubir } from '@/lib/foto-optimizar';
+import { FotoEncuadre } from '@/components/foto-encuadre';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, MaxContentWidthEscritorio, Spacing, SombraTarjeta, RojoTexto } from '@/constants/theme';
@@ -76,6 +77,7 @@ export default function SalaScreen() {
   // cámara serían 1-2,5 MB y el inventario completo no cabría en el servidor.
   const [fotoEstado, setFotoEstado] = useState<string | null>(null);
   const [fotoResumen, setFotoResumen] = useState<string | null>(null);
+  const [encuadrando, setEncuadrando] = useState(false);
 
   // Elementos importados de la hoja que quedaron sin N° de inventario: no
   // tienen Data Matrix que imprimir hasta que se les asigne un código.
@@ -196,6 +198,7 @@ export default function SalaScreen() {
     setSaveError(null);
     setFotoEstado(null);
     setFotoResumen(null);
+    setEncuadrando(false);
   }, []);
 
   // Escape cierra la ficha: en web, además del clic en el fondo.
@@ -208,7 +211,7 @@ export default function SalaScreen() {
     return () => window.removeEventListener('keydown', alTeclear);
   }, [selected, saving, closeModal]);
 
-  async function handleFoto(asset: ImagePicker.ImagePickerAsset) {
+  async function handleFoto(asset: Pick<ImagePicker.ImagePickerAsset, 'uri' | 'width' | 'height' | 'fileSize'>) {
     if (!selected?.id || saving) return;
     setSaving(true);
     setSaveError(null);
@@ -226,6 +229,7 @@ export default function SalaScreen() {
       // El hash nuevo cambia la URL: expo-image pide la imagen nueva sola.
       setSelected((prev) => (prev ? { ...prev, foto_hash: hash } : prev));
       setFotoResumen(`Foto guardada: ${optimizada.resumen}`);
+      setEncuadrando(false);
       load();
     } catch (e) {
       setSaveError(mensajeDeError(e, 'No se pudo guardar la foto'));
@@ -563,7 +567,13 @@ export default function SalaScreen() {
 
               <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
 
-                {fotoGrande ? (
+                {fotoGrande && encuadrando ? (
+                  <FotoEncuadre
+                    uri={fotoGrande}
+                    onCancelar={() => setEncuadrando(false)}
+                    onGuardar={(r) => handleFoto({ uri: r.uri, width: r.ancho, height: r.alto })}
+                  />
+                ) : fotoGrande ? (
                   <Image
                     source={{ uri: fotoGrande }}
                     style={styles.photo}
@@ -581,7 +591,7 @@ export default function SalaScreen() {
 
                 {/* La foto se toma aquí y se sube ya reducida (1200 px + miniatura),
                     para que el inventario completo quepa en el servidor. */}
-                {puede('fotos') && <View style={styles.photoActions}>
+                {puede('fotos') && !encuadrando && <View style={styles.photoActions}>
                   <Pressable
                     accessibilityRole="button"
                     disabled={saving || selected.id == null}
@@ -596,6 +606,15 @@ export default function SalaScreen() {
                     style={[styles.photoButton, { borderColor: theme.accent }, (saving || selected.id == null) && styles.buttonDisabled]}>
                     <ThemedText style={[styles.photoButtonLabel, { color: theme.accent }]}>Galería</ThemedText>
                   </Pressable>
+                  {fotoGrande && (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={saving}
+                      onPress={() => setEncuadrando(true)}
+                      style={[styles.photoButton, { borderColor: theme.accent }, saving && styles.buttonDisabled]}>
+                      <ThemedText style={[styles.photoButtonLabel, { color: theme.accent }]}>Encuadrar</ThemedText>
+                    </Pressable>
+                  )}
                   {fotoGrande && (
                     <Pressable
                       accessibilityRole="button"
