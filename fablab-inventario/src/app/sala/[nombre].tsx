@@ -92,19 +92,28 @@ export default function SalaScreen() {
   // "tipo" en la base si algún día hace falta precisión.
   const [tipoSel, setTipoSel] = useState('');
   const [panelTipos, setPanelTipos] = useState(false);
+  const [masTipos, setMasTipos] = useState(false);
   const tipoDe = (i: InventoryItem) => {
     const o = (i.detalle ?? '').trim().split(/[\s\-_/]+/)[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (/^\d*$/.test(o)) return '';
-    return o === o.toUpperCase() ? o : o.charAt(0).toUpperCase() + o.slice(1).toLowerCase(); // siglas (KY, LED) quedan igual
+    // Siglas cortas (KY, LED, HUB) en mayúsculas; el resto capitalizado (CABLE → Cable).
+    return o.length <= 3 && o === o.toUpperCase() ? o : o.charAt(0).toUpperCase() + o.slice(1).toLowerCase();
   };
-  const tipos = useMemo(() => {
+  const { lista: tipos, alias: aliasTipo } = useMemo(() => {
     const n = new Map<string, number>();
     for (const i of items) { const t = tipoDe(i); if (t) n.set(t, (n.get(t) ?? 0) + 1); }
-    return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const alias = new Map<string, string>();
+    // Plurales al singular si existe (Pilas → Pila, Gafas → Gafa).
+    for (const [t, c] of [...n]) {
+      const sg = t.replace(/e?s$/, '');
+      const dest = n.has(t.slice(0, -1)) ? t.slice(0, -1) : sg !== t && n.has(sg) ? sg : '';
+      if (t.endsWith('s') && dest) { n.set(dest, n.get(dest)! + c); n.delete(t); alias.set(t, dest); }
+    }
+    return { lista: [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), alias };
   }, [items]);
   const visibles = useMemo(
-    () => filtrarElementos(tipoSel ? items.filter((i) => tipoDe(i) === tipoSel) : items, filtro),
-    [items, filtro, tipoSel],
+    () => filtrarElementos(tipoSel ? items.filter((i) => (aliasTipo.get(tipoDe(i)) ?? tipoDe(i)) === tipoSel) : items, filtro),
+    [items, filtro, tipoSel, aliasTipo],
   );
   const filtrando = filtro.trim() !== '' || tipoSel !== '';
 
@@ -409,7 +418,7 @@ export default function SalaScreen() {
               </Pressable>
               {panelTipos && (
                 <View style={[styles.tiposPanel, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
-                  {([['', items.length], ...tipos] as [string, number][]).map(([e, n]) => {
+                  {([['', items.length], ...(masTipos ? tipos : tipos.slice(0, 19))] as [string, number][]).map(([e, n]) => {
                     const activo = tipoSel === e;
                     return (
                       <Pressable
@@ -428,6 +437,11 @@ export default function SalaScreen() {
                       </Pressable>
                     );
                   })}
+                  {tipos.length > 19 && (
+                    <Pressable accessibilityRole="button" onPress={() => setMasTipos((v) => !v)} style={({ pressed }) => [styles.chip, { borderColor: 'transparent' }, pressed && styles.presionado]}>
+                      <ThemedText type="smallBold" style={{ color: theme.accent }}>{masTipos ? 'Mostrar menos' : `Mostrar más (${tipos.length - 19})`}</ThemedText>
+                    </Pressable>
+                  )}
                 </View>
               )}
             </View>
