@@ -310,7 +310,7 @@ export async function asignarCodigo(id: number, codigo: string, reemplazar = fal
  */
 export function urlFoto(
   elemento: { id?: number | null; foto_hash?: string | null } | null | undefined,
-  tam: 'foto' | 'miniatura' = 'miniatura',
+  tam: 'foto' | 'miniatura' | 'original' = 'miniatura',
 ): string | null {
   if (!elemento || elemento.id == null || !elemento.foto_hash) return null;
   const sesion = tokenParaEnlace();
@@ -322,7 +322,7 @@ export function urlFoto(
  * dispositivo (base64). El mensaje del server se propaga porque un 413 explica
  * exactamente cuánto pesa y cuál es el límite.
  */
-export async function subirFoto(id: number, datos: DatosFoto): Promise<string> {
+export async function subirFoto(id: number, datos: DatosFoto & { recorte?: boolean }): Promise<string> {
   const res = await fetch(`${API_BASE}/elementos/${id}/foto`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },

@@ -460,7 +460,7 @@ async function handleReq(req, res) {
         }
         // If-None-Match con otro hash: sigue al GET completo de abajo.
       }
-      const foto = await obtenerFoto(elementoId, query.tam === 'miniatura' ? 'miniatura' : 'foto', conexionDesdeEnv());
+      const foto = await obtenerFoto(elementoId, ['miniatura', 'original'].includes(query.tam) ? query.tam : 'foto', conexionDesdeEnv());
       if (!foto) return notFound(res);
       return binario(res, foto.datos, foto.mime, foto.hash, req);
     }
@@ -649,7 +649,7 @@ server.listen(PORT, HOST, () => {
   console.log(`  POST   /api/elementos`);
   console.log(`  PUT    /api/elementos/:id`);
   console.log(`  POST   /api/elementos/:id/codigo  (solo si el elemento no tiene código)`);
-  console.log(`  GET    /api/elementos/:id/foto[?tam=miniatura]`);
+  console.log(`  GET    /api/elementos/:id/foto[?tam=miniatura|original]`);
   console.log(`  POST   /api/elementos/:id/foto    (WebP/JPEG ya reducidos; límite 400 KB)`);
   console.log(`  DELETE /api/elementos/:id/foto`);
   console.log(`  POST   /api/import/elementos     (CSV o libro; cada hoja es una sala)`);

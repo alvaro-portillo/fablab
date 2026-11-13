@@ -41,11 +41,9 @@ export function FotoEncuadre({ uri, onCancelar, onGuardar }: {
   }, [src]);
 
   const marcoH = (marcoW * 3) / 4;
-  // zoom 1 = la foto llena el marco; por debajo (solo web) se ve entera con relleno blanco.
-  // Hasta 50 % (o menos si hace falta para ver entera una foto de otra proporción).
-  const zoomMin = Platform.OS !== 'web' ? 1 : dims && marcoW
-    ? Math.min(0.5, Math.min(marcoW / dims.w, marcoH / dims.h) / Math.max(marcoW / dims.w, marcoH / dims.h)) : 0.5;
+  // zoom 1 = la foto llena el marco; alejar llega hasta verla entera (solo web: el resto se rellena de blanco).
   const entera = dims && marcoW ? Math.min(marcoW / dims.w, marcoH / dims.h) / Math.max(marcoW / dims.w, marcoH / dims.h) : 1;
+  const zoomMin = Platform.OS === 'web' ? entera : 1;
   const escala = dims && marcoW ? Math.max(marcoW / dims.w, marcoH / dims.h) * zoom : 1;
   const ventana = dims ? { w: marcoW / escala, h: marcoH / escala } : { w: 0, h: 0 };
   const acotar = (p: { x: number; y: number }) => dims

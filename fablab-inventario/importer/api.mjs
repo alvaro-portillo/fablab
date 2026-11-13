@@ -512,13 +512,19 @@ export const DDL_FOTOS = `CREATE TABLE IF NOT EXISTS \`elemento_fotos\` (
   \`hash\` CHAR(16) NOT NULL,
   \`foto\` MEDIUMBLOB NOT NULL,
   \`miniatura\` MEDIUMBLOB NOT NULL,
+  \`original\` MEDIUMBLOB NULL,
   \`actualizado\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (\`elemento_id\`) REFERENCES \`elementos\`(\`id\`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
 
 /** Crea `elemento_fotos` si falta. Idempotente: llamarlo en cada arranque es no-op. */
 export async function asegurarEsquemaFotos(cfg = conexionDesdeEnv()) {
-  await conectar(cfg, (conn) => conn.query(DDL_FOTOS));
+  await conectar(cfg, async (conn) => {
+    await conn.query(DDL_FOTOS);
+    // Tablas creadas antes del encuadre: agregar la columna (MySQL no tiene ADD COLUMN IF NOT EXISTS).
+    try { await conn.query('ALTER TABLE `elemento_fotos` ADD COLUMN `original` MEDIUMBLOB NULL AFTER `miniatura`'); }
+    catch (e) { if (e?.errno !== 1060) throw e; } // 1060 = la columna ya existe
+  });
 }
 
 // --- Bitácora de auditoría ---
@@ -801,8 +807,12 @@ export async function guardarFoto(elementoId, datos, cfg = conexionDesdeEnv()) {
     try {
     const [[actual]] = await conn.query('SELECT elemento_id, hash FROM elemento_fotos WHERE elemento_id = ?', [elementoId]);
     if (actual) {
+      // `original` = la foto sin encuadrar. Un encuadre (datos.recorte) la conserva; si aún
+      // no había, la foto actual ES el original (MySQL asigna en orden: se copia antes de pisarla).
+      // Una foto nueva lo borra (NULL = la foto misma es el original).
       await conn.query(
-        'UPDATE elemento_fotos SET mime = ?, ancho = ?, alto = ?, bytes = ?, hash = ?, foto = ?, miniatura = ? WHERE elemento_id = ?',
+        `UPDATE elemento_fotos SET ${datos.recorte ? 'original = COALESCE(original, foto)' : 'original = NULL'},
+          mime = ?, ancho = ?, alto = ?, bytes = ?, hash = ?, foto = ?, miniatura = ? WHERE elemento_id = ?`,
         [mime, ancho, alto, foto.length, hash, foto, miniatura, elementoId],
       );
     } else {
@@ -871,6 +881,7 @@ function cacheFotoLimpiarElemento(elementoId) {
   hashesFoto.delete(elementoId);
   blobFoto.delete(`${elementoId}:foto`);
   blobFoto.delete(`${elementoId}:miniatura`);
+  blobFoto.delete(`${elementoId}:original`);
 }
 
 export async function precargarMiniaturas(cfg = conexionDesdeEnv()) {
@@ -906,7 +917,7 @@ export async function obtenerHashFoto(elementoId, cfg = conexionDesdeEnv()) {
 
 /** Devuelve los bytes de la foto (o de su miniatura) para servirla tal cual. */
 export async function obtenerFoto(elementoId, tam = 'foto', cfg = conexionDesdeEnv()) {
-  const columna = tam === 'miniatura' ? 'miniatura' : 'foto';
+  const columna = { miniatura: 'miniatura', original: 'COALESCE(original, foto)' }[tam] ?? 'foto';
   const enCache = cacheFotoGet(elementoId, tam);
   if (enCache) return enCache;
   const fila = await conectar(cfg, async (conn) => {
