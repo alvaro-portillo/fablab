@@ -87,10 +87,16 @@ export default function SalaScreen() {
   // consulta devuelve la lista tal cual.
   const [filtro, setFiltro] = useState('');
   const [filtroEnfocado, setFiltroEnfocado] = useState(false);
-  // Filtro rápido por tipo: el nombre sin el número final ("Arduino uno 3" → "Arduino uno").
+  // Filtro por tipo: la primera palabra del nombre ("Modulo bluethoth HC" → "Modulo",
+  // "KY-016 ..." → "KY"), sin tildes ni mayúsculas. ponytail: heurística; un campo
+  // "tipo" en la base si algún día hace falta precisión.
   const [tipoSel, setTipoSel] = useState('');
-  const [todosTipos, setTodosTipos] = useState(false);
-  const tipoDe = (i: InventoryItem) => (i.detalle ?? '').trim().replace(/[\s\-#.]*\d+$/, '').trim();
+  const [panelTipos, setPanelTipos] = useState(false);
+  const tipoDe = (i: InventoryItem) => {
+    const o = (i.detalle ?? '').trim().split(/[\s\-_/]+/)[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/^\d*$/.test(o)) return '';
+    return o === o.toUpperCase() ? o : o.charAt(0).toUpperCase() + o.slice(1).toLowerCase(); // siglas (KY, LED) quedan igual
+  };
   const tipos = useMemo(() => {
     const n = new Map<string, number>();
     for (const i of items) { const t = tipoDe(i); if (t) n.set(t, (n.get(t) ?? 0) + 1); }
@@ -391,31 +397,38 @@ export default function SalaScreen() {
             </View>
           )}
           {items.length > 8 && tipos.length > 1 && (
-            <View style={styles.chips}>
-              {([['', items.length], ...(todosTipos ? tipos : tipos.filter(([t, n], k) => (n > 1 && k < 10) || t === tipoSel))] as [string, number][]).map(([e, n]) => {
-                const activo = tipoSel === e;
-                return (
-                  <Pressable
-                    key={e || 'todos'}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: activo }}
-                    onPress={() => setTipoSel(activo ? '' : e)}
-                    style={({ pressed }) => [
-                      styles.chip,
-                      { backgroundColor: activo ? theme.accent : theme.backgroundElement, borderColor: activo ? theme.accent : theme.backgroundSelected },
-                      pressed && styles.presionado,
-                    ]}>
-                    <ThemedText type="small" style={{ color: activo ? '#fff' : theme.text }}>
-                      {`${e || 'Todos'} (${n})`}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-              {/* Solo los tipos más comunes: con todos (cientos de 1) era una pared de chips. */}
-              {tipos.some(([, n], k) => n === 1 || k >= 10) && (
-                <Pressable accessibilityRole="button" onPress={() => setTodosTipos((v) => !v)} style={styles.chip}>
-                  <ThemedText type="small" style={{ color: RojoTexto }}>{todosTipos ? 'Menos tipos' : `Más tipos (${tipos.length})`}</ThemedText>
-                </Pressable>
+            <View style={styles.tiposBloque}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: panelTipos }}
+                onPress={() => setPanelTipos((v) => !v)}
+                style={({ pressed }) => [styles.chip, styles.tiposBoton, { backgroundColor: tipoSel ? theme.accent : theme.backgroundElement, borderColor: tipoSel ? theme.accent : theme.backgroundSelected }, pressed && styles.presionado]}>
+                <ThemedText type="smallBold" style={{ color: tipoSel ? '#fff' : theme.text }}>
+                  {`Tipo: ${tipoSel || 'Todos'} ${panelTipos ? '▴' : '▾'}`}
+                </ThemedText>
+              </Pressable>
+              {panelTipos && (
+                <View style={[styles.tiposPanel, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+                  {([['', items.length], ...tipos] as [string, number][]).map(([e, n]) => {
+                    const activo = tipoSel === e;
+                    return (
+                      <Pressable
+                        key={e || 'todos'}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: activo }}
+                        onPress={() => { setTipoSel(e); setPanelTipos(false); }}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          { backgroundColor: activo ? theme.accent : 'transparent', borderColor: activo ? theme.accent : theme.backgroundSelected },
+                          pressed && styles.presionado,
+                        ]}>
+                        <ThemedText type="small" style={{ color: activo ? '#fff' : theme.text }}>
+                          {`${e || 'Todos'} (${n})`}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               )}
             </View>
           )}
@@ -722,8 +735,9 @@ const styles = StyleSheet.create({
   filtro: { marginTop: Spacing.three, gap: Spacing.two },
   filtroEscritorio: { flexDirection: 'row', alignItems: 'center' },
   filtroCampo: { flex: 1, minHeight: 46, borderRadius: 8, borderWidth: 1, paddingHorizontal: Spacing.three, fontSize: 15, outlineStyle: 'none' } as object,
-  // Envuelven en varias líneas: en fila horizontal el último quedaba cortado.
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, marginTop: Spacing.two },
+  tiposBloque: { marginTop: Spacing.two, gap: Spacing.two, alignItems: 'flex-start' },
+  tiposBoton: { minHeight: 36, justifyContent: 'center' },
+  tiposPanel: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, padding: Spacing.three, borderRadius: 12, borderWidth: 1 },
   chip: { paddingVertical: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: 999, borderWidth: 1 },
   filtroLimpiar: { minHeight: 46, justifyContent: 'center', paddingHorizontal: Spacing.two },
   presionado: { opacity: 0.6 },
