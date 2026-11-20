@@ -14,3 +14,26 @@ fablab-inventario/backups/
 # Metadatos locales de la herramienta de agentes (Freebuff)
 .freebuff/
 entregas/
+
+# formularios RCTA con datos personales
+documento/RCTA-formato-autores.docx
+documento/RCTA-declaracion-derechos.docx
+
+# Documentos y datos: viven en Drive (FabLab UFPS - Inventario)
+/documento
+/notes
+/Control_Inventario_FabLab_UFPS.pdf
+/Control_Inventario_FabLab_UFPS.pptx
+/PRESENTACION SISTEMA DE CONTROL DE INVENTARIO DEL FABLAB UFPS.pdf
+/FabLab Takeaways.html
+/seed-demo.sql
+/fablab-inventario/data-elementos.csv
+/fablab-inventario/ddl-data.sql
+/fablab-inventario/docs
+/fablab-inventario/deploy-workflows
+/fablab-inventario/CLAUDE.md
+/fablab-inventario/AGENTS.md
+/fablab-inventario/.claude
+/specs
+graphify-out/
+.claude/
